@@ -2,3 +2,218 @@
 title: "使用 Python"
 icon: "python"
 ---
+
+<Note>
+  在开始之前，请确保你的系统上已经安装了 [Python](https://www.python.org/downloads/)
+</Note>
+
+<Warning>
+  OpenFic 仅支持 **Python 3.12 和 3.13**，如果使用其它版本可能会在安装或运行时出错
+</Warning>
+
+Python 安装方式适合希望直接运行本地服务、进行开发或使用低资源环境的用户。OpenFic 启动后，可以通过 `http://localhost:8000` 访问。
+
+## 快速开始
+
+### pip
+
+<Note>
+  直接使用 pip 进行安装可能会对系统的全局 Python 环境造成污染，如果你不希望影响现有环境，请考虑使用 uv、Conda或Venv
+</Note>
+
+1. 安装 OpenFic
+
+```bash
+pip install openfic
+```
+
+2. 启动服务器
+
+```shellscript
+openfic serve
+```
+
+3. 打开 OpenFic
+
+等待启动完成后，在浏览器中打开：
+
+```shellscript
+http://localhost:8000
+```
+
+### uv
+
+1. 安装 [uv](https://docs.astral.sh/uv/getting-started/)
+2. 运行 OpenFic
+
+```bash
+uvx --python 3.12 openfic@latest serve
+```
+
+3. 打开 OpenFic
+
+等待启动完成后，在浏览器中打开：
+
+```shellscript
+http://localhost:8000
+```
+
+### Conda
+
+1. 安装 [Anaconda 或 Miniconda](https://www.anaconda.com/docs/getting-started/installation)
+2. 创建 Conda 虚拟环境
+
+```shellscript
+conda create -n openfic python=3.12
+```
+
+3. 激活环境
+
+```shellscript
+conda activate openfic
+```
+
+4. 安装 OpenFic
+
+```shellscript
+pip install openfic
+```
+
+5. 启动服务器
+
+```bash
+openfic serve
+```
+
+6. 打开 OpenFic
+
+等待启动完成后，在浏览器中打开：
+
+```shellscript
+http://localhost:8000
+```
+
+### Venv
+
+`venv` 是 Python 内置的虚拟环境工具
+
+1. 创建虚拟环境
+
+```shellscript
+python -m venv .venv
+```
+
+该命令会在当前目录下创建，因此在运行前请先切换至期望的安装路径
+
+2. 激活虚拟环境
+
+Linux/macOS：
+
+```shellscript
+source venv/bin/activate
+```
+
+Windows：
+
+```shellscript
+venv\Scripts\activate
+```
+
+3. 安装 OpenFic
+
+```shellscript
+pip install openfic
+```
+
+4. 启动服务器
+
+```bash
+openfic serve
+```
+
+5. 打开 OpenFic
+
+等待启动完成后，在浏览器中打开：
+
+```shellscript
+http://localhost:8000
+```
+
+## 常用配置
+
+### 自定义端口
+
+如果主机的 `8000` 端口已经被占用，可以使用 `--port` 指定其他端口：
+
+```bash
+openfic serve --port 8080
+```
+
+然后打开 `http://localhost:8080`。
+
+### 指定数据目录
+
+OpenFic 默认会将数据写入 `~/.openfic`，你可以通过环境变量 `OPENFIC_DATA_DIR` 指定其他目录：
+
+Linux/macOS：
+
+```bash
+OPENFIC_DATA_DIR="$HOME/OpenFic/data" openfic serve
+```
+
+Windows：
+
+```powershell
+$env:OPENFIC_DATA_DIR = "$HOME\OpenFic\data"
+openfic serve
+```
+
+如果使用 `uvx`，请在启动命令前设置：
+
+```bash
+OPENFIC_DATA_DIR="$HOME/OpenFic/data" uvx --python 3.12 openfic@latest serve
+```
+
+## 更新
+
+### pip、Conda 和 Venv
+
+激活对应的虚拟环境后执行：
+
+```bash
+pip install --upgrade openfic
+```
+
+### uv
+
+使用 `@latest` 运行时，重新执行启动命令即可获取最新版本：
+
+```bash
+uvx --python 3.12 openfic@latest serve
+```
+
+## 卸载
+
+### pip 或 Venv
+
+在对应环境中执行：
+
+```bash
+python -m pip uninstall openfic
+```
+
+如果不再需要虚拟环境，可以删除项目目录中的 `.venv` 文件夹。
+
+### Conda
+
+```bash
+conda env remove -n openfic
+```
+
+### uv
+
+uvx 不会将 OpenFic 安装到当前 Python 环境，因此不需要单独卸载，需要时可以按照 [uv 缓存文档](https://docs.astral.sh/uv/concepts/cache/) 清理缓存。
+
+<Warning>
+  卸载软件包或删除虚拟环境不会删除 `~/.openfic` 中的项目和配置。如果确认不再需要这些数据，请在备份后手动删除数据目录。
+</Warning>
