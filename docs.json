@@ -16,6 +16,22 @@
           "index",
           "quickstart"
         ]
+      },
+      "introduction",
+      {
+        "group": "安装",
+        "pages": [
+          "installation/docker",
+          "installation/python",
+          "installation/desktop"
+        ]
+      },
+      {
+        "group": "Getting Started",
+        "pages": [
+          "index",
+          "quickstart"
+        ]
       }
     ],
     "global": {
