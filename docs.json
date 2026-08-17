@@ -10,7 +10,7 @@
   "favicon": "/favicon.svg",
   "navigation": {
     "pages": [
-      "introduction",
+      "index",
       {
         "group": "安装",
         "pages": [
@@ -22,7 +22,7 @@
       {
         "group": "Getting Started",
         "pages": [
-          "index",
+          "int",
           "quickstart"
         ]
       }
