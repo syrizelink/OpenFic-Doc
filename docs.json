@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "almond",
-  "name": "Mintlify Starter Kit",
+  "name": "OpenFic",
   "colors": {
     "primary": "#000000",
     "light": "#FFFFFF",
@@ -10,13 +10,6 @@
   "favicon": "/favicon.svg",
   "navigation": {
     "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      },
       "introduction",
       {
         "group": "安装",
@@ -33,21 +26,7 @@
           "quickstart"
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
@@ -90,5 +69,8 @@
   },
   "markdown": {
     "schema": true
+  },
+  "fonts": {
+    "family": "Noto Serif SC"
   }
 }

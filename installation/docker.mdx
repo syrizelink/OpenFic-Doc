@@ -4,5 +4,141 @@ icon: "docker"
 ---
 
 <Note>
-  在开始之前，请确保您的系统上已经安装了 [Docker](https://docs.docker.com/get-started/get-docker/)
+  在开始之前，请确保你的系统上已经安装了 [Docker](https://docs.docker.com/get-started/get-docker/)
 </Note>
+
+## 快速开始
+
+### 1. 拉取镜像
+
+从 GitHub Container Registry 拉取 OpenFic 镜像：
+
+```bash
+docker pull ghcr.io/syrizelink/openfic:latest
+```
+
+### 2. 启动容器
+
+```bash
+docker run -d -p 8000:8000 -v "openfic:/data" \
+	--name openfic --restart unless-stopped \
+	ghcr.io/syrizelink/openfic:latest
+```
+
+| 参数 | 用途 |
+| --- | :-- |
+| `-d` | 在后台运行容器。 |
+| `-p 8000:8000` | 将**主机**的 `8000` 端口映射到**容器**的 `8000` 端口。 |
+| `-v "openfic:/data"` | 持久化存储，将名为 `openfic` 的 Docker 数据卷挂载到容器的 `/data`，以防止重启后丢失数据 |
+| `--name openfic` | 为容器命名 |
+| `--restart unless-stopped` | Docker 服务重启后自动启动 OpenFic，除非你手动停止了容器。 |
+
+### 3. 打开 OpenFic
+
+容器启动后，在浏览器中打开：
+
+```text
+http://localhost:8000
+```
+
+如你在云服务器上运行，请将 `localhost` 替换为服务器的公网IP，并在防火墙放行 `8000` 端口。
+
+## 常用配置
+
+### 自定义端口
+
+如果主机的 `8000` 端口已经被占用，或你希望使用其它端口，可以只修改端口映射。例如，下面的命令会通过主机的 `8080` 端口访问 OpenFic：
+
+```bash
+docker run -d -p 8080:8000 -v "openfic:/data" \
+	--name openfic --restart unless-stopped \
+	ghcr.io/syrizelink/openfic:latest
+```
+
+然后打开 `http://localhost:8080`。
+
+### 保存数据至本地目录
+
+默认命令使用 Docker named volume 进行数据持久化，你也可以将主机目录挂载到 `/data`：
+
+```bash
+docker run -d -p 8000:8000 -v "/absolute/path/to/openfic-data:/data" \
+	--name openfic --restart unless-stopped \
+	ghcr.io/syrizelink/openfic:latest
+```
+
+将 `/absolute/path/to/openfic-data` 替换为主机上的实际目录，请确保 Docker 对该目录具有读写权限。
+
+### 固定版本
+
+OpenFic 遵循 [Semantic Versioning](https://semver.org/) 的版本号发布规范，你可以使用如 `:X.Y.Z` 的版本标签拉取特定版本的镜像，在 [Package Versions](https://github.com/syrizelink/OpenFic/pkgs/container/openfic/versions) 可用查询到所有可用的版本号。
+
+```bash
+docker run -d -p 8000:8000 -v "openfic:/data" \
+	--name openfic --restart unless-stopped \
+	ghcr.io/syrizelink/openfic:X.Y.Z
+```
+
+将 `:X.Y.Z` 替换为你需要固定的版本号，这会将容器锁定在选定的版本，并且永远不会更改。
+
+## 更新
+
+### 自动更新
+
+你可以使用 [Watchtower](https://github.com/nicholas-fedor/watchtower) 自动处理更新过程：
+
+```shellscript
+docker run --rm \
+	--volume /var/run/docker.sock:/var/run/docker.sock \
+	nickfedor/watchtower --run-once openfic
+```
+
+如果你使用了自定义名称，请将 `openfic` 替换为实际使用的容器名。
+
+### 手动更新
+
+1. 停止并删除当前容器
+
+```shellscript
+docker rm -f openfic
+```
+
+2. 拉取最新版本
+
+```shellscript
+docker pull ghcr.io/syrizelink/openfic:latest
+```
+
+3. 重启容器
+
+```shellscript
+docker run -d -p 8000:8000 -v "openfic:/data" \
+	--name openfic --restart unless-stopped \
+	ghcr.io/syrizelink/openfic:latest
+```
+
+如果你使用了自定义端口或本地目录，请在重新创建容器时保留对应的 `-p` 和 `-v` 参数。
+
+## 卸载
+
+1. 停止并删除当前容器
+
+```bash
+docker rm -f openfic
+```
+
+2. 删除本地镜像（可选）
+
+```bash
+docker image rm ghcr.io/syrizelink/openfic:latest
+```
+
+3. 删除数据卷（可选）
+
+```bash
+docker volume rm openfic
+```
+
+<Warning>
+  这会永久删除该数据卷中的项目、数据库和配置，除非你确定不再需要，否则在删除前请先完成备份。
+</Warning>
