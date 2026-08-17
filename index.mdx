@@ -1,20 +1,41 @@
 ---
-title: "Introduction"
-description: "Welcome to your project"
+title: "简介"
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+**OpenFic** 是一款专为小说创作打造的跨平台、用户友好、AI Native 的一站式 Vibe Writing 工具，构建设定、设计角色、定制工作流，让Agent适应你的写作流程，而非反之。
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+你可以通过以下方式快速安装 OpenFic
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+<Tabs>
+  <Tab title="Docker">
+    ```shellscript
+    docker run -d -p 8000:8000 -v "openfic:/data" --name openfic ghcr.io/syrizelink/openfic:latest
+    ```
+
+    然后打开 [http://localhost:8000](http://localhost:8000) 开始使用
+  </Tab>
+  <Tab title="pip">
+    ```shellscript
+    pip install openfic
+    openfic serve
+    ```
+
+    然后打开 [http://localhost:8000](http://localhost:8000) 开始使用
+  </Tab>
+  <Tab title="uv">
+    ```shellscript
+    uvx --python 3.12 openfic@latest serve
+    ```
+
+    然后打开 [http://localhost:8000](http://localhost:8000) 开始使用
+  </Tab>
+  <Tab title="桌面版">
+    前往 [Github Release](https://github.com/syrizelink/OpenFic/releases/latest) 下载桌面应用，在你的系统上原生运行，而无需额外步骤。
+  </Tab>
+</Tabs>
+
+关于使用不同方式安装的详细指南，请参阅：
+
+- [Docker](/untitled-page-3)
+- [Python](/untitled-page-4)
+- [桌面版](/untitled-page-5)
