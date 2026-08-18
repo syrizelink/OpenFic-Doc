@@ -44,7 +44,11 @@
     "options": [
       "copy",
       "view",
-      "download-pdf"
+      "download-pdf",
+      "chatgpt",
+      "claude",
+      "grok",
+      "aistudio"
     ]
   },
   "footer": {
