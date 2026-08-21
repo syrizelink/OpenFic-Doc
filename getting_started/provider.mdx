@@ -1,0 +1,66 @@
+---
+title: "连接模型提供商"
+sidebarTitle: "连接模型提供商"
+---
+
+<Note>
+  在 OpenFic 中，**模型提供商** 与 **模型** 是分离的，你需要先连接模型提供商再创建模型以开始使用
+</Note>
+
+OpenFic 基于内置的[目录](https://models.dev/)广泛的支持多种模型提供商，例如 OpenAI、Anthropic、OpenRouter等等，只需输入你的API Key即可。
+
+任何支持 OpenAI Compatible 或 Anthropic Compatible 协议的提供商或是本地模型服务，都可以通过自定义Base URL进行连接。
+
+## 连接一个提供商
+
+<Note>
+  在开始之前，请先准备好所要连接的提供商的API Key
+</Note>
+
+<Steps>
+  <Step title="进入提供商页面">
+    于左侧边栏底部打开`设置`面板，此处显示了所有可配置项。
+
+    在左侧列表中找到`提供商`后点击进入。
+
+    <Frame>
+      ![Provider Empty](/images/screenshot/provider-empty.png "Provider Empty")
+    </Frame>
+  </Step>
+  <Step title="添加连接">
+    点击`新建连接`按钮，在弹出的表单中填写相关信息。
+
+    在`备注名称`处，可以填写易识别的名称，以便于在添加多个相同来源的提供商时做区分，如果不填写，会显示为提供商名称或 Base URL。
+
+    点击`提供商类型`以选择所需的提供商类型，对于绝大多数的提供商，应都能够在其中找到。
+
+    如果所需的提供商不在目录中，可以选择 OpenAI Compatible 或 Anthropic Compatible 类型，这两种提供商类型允许你填入自定义的 Base URL 以进行连接。
+
+    OpenAI Compatible：基于 [**OpenAI Chat Completions API**](https://developers.openai.com/api/reference/chat-completions/overview) 格式进行连接
+
+    Anthropic Compatible：基于 **[Anthropic Messages API](https://platform.claude.com/docs/en/api/messages) **格式进行连接。
+
+    <Frame>
+      ![Provider Create](/images/screenshot/provider-create.png "Provider Create")
+    </Frame>
+  </Step>
+  <Step title="验证连接">
+    完成填写后，你可以通过点击`验证连接`来确认供应商是否可达。
+
+    在验证过程中，会向以下链接发送请求，通过其返回状态判定是否可连接。
+
+    ```shellscript
+    <BASE_URL>/models
+    ```
+
+    <Warning>
+      验证连接并不一定准确，仅供参考！！
+
+      由于并不是所有提供商均提供了可访问的模型获取接口，且部分提供商在访问该接口时并不需要认证，验证失败有时不等同于无法连接，请以实际使用情况为准。
+    </Warning>
+
+    <Frame>
+      ![Provider Validate](/images/screenshot/provider-validate.png "Provider Validate")
+    </Frame>
+  </Step>
+</Steps>

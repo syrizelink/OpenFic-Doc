@@ -8,9 +8,7 @@ sidebarTitle: "桌面版"
   在 [GitHub Releases](https://github.com/syrizelink/OpenFic/releases/latest) 下载适合你的操作系统和 CPU 架构的安装包
 </Note>
 
-## 快速开始
-
-### 1. 选择安装包
+## 选择安装包
 
 | 系统 | Intel/AMD 64 位 | ARM 64 位 | 推荐格式 |
 | --- | --- | --- | --- |
@@ -18,34 +16,9 @@ sidebarTitle: "桌面版"
 | macOS | `mac-x86_64` | `mac-aarch64` | `.dmg` 安装包或 `.zip` |
 | Linux | `linux-x86_64` | `linux-aarch64` | `.AppImage` 或 `.tar.gz` |
 
-一般而言，Intel 或 AMD 处理器应选择 `x86_64`，而 Apple Silicon 和 Windows on ARM 设备应选择 `aarch64`。
-
-### 2. 安装并启动
-
-#### Windows
-
-下载并运行 `OpenFic-<version>-win-<arch>-setup.exe`，按照安装程序提示完成安装。你也可以解压对应的 `.zip` 文件，然后运行其中的 `OpenFic.exe`。
-
-#### macOS
-
-下载 `OpenFic-<version>-mac-<arch>.dmg`，打开后将 OpenFic 拖到 **Applications** 文件夹，再从 **Applications** 启动。
-
-如果 macOS 阻止首次启动，请在 Finder 中右键点击 OpenFic，选择 **打开**，然后确认启动。
-
-#### Linux
-
-AppImage 不需要系统级安装。下载文件后，为它添加执行权限并启动：
-
-```bash
-chmod +x OpenFic-VERSION-linux-ARCH.AppImage
-./OpenFic-VERSION-linux-ARCH.AppImage
-```
-
-将 `VERSION` 和 `ARCH` 替换为下载文件名中的实际值。你也可以解压 `.tar.gz` 压缩包后运行其中的 `OpenFic` 文件。
-
 ## 数据和备份
 
-桌面版将项目数据保存在系统用户数据目录，而不是应用安装目录。升级或重新安装应用时，通常不会影响已有项目。
+默认情况下，桌面版将项目数据保存在系统用户数据目录，而不是应用安装目录；在安装并使用本地实例时，也可以指定自定义数据目录。
 
 | 系统 | 默认数据目录 |
 | --- | --- |
@@ -53,50 +26,28 @@ chmod +x OpenFic-VERSION-linux-ARCH.AppImage
 | macOS | `~/Library/Application Support/OpenFic` |
 | Linux | `~/.config/OpenFic` |
 
-你可以在桌面端的数据管理页面中迁移或备份数据。备份前请先退出 OpenFic。
-
-<Warning>
-  数据目录包含项目数据库、加密密钥、附件和导出文件。删除前请先完成备份。
-</Warning>
+你也可以在桌面端的数据管理页面中迁移、备份或还原数据。
 
 ## 更新
 
-1. 打开 [最新 Release](https://github.com/syrizelink/OpenFic/releases/latest)。
-2. 下载与你的系统和架构匹配的新版本。
-3. 关闭旧版本，然后安装或解压新版本。
-4. 启动 OpenFic，确认已有项目可以正常打开。
+### 自动更新
 
-安装应用时请保留系统用户数据目录。
+对于 Windows 桌面版，你可以在页面右上角找`检查更新`按钮，点击后会自动检测是否存在可更新的包体。
 
-## 卸载
+在下载完成后，点`重启并更新`后，应用会自动关闭并在后台完成所有更新操作，完成后，窗口会自动打开。
 
-### Windows
+如果使用的是本地实例，那么在启动实例时，会自动识别并更新本地实例至相匹配的版本。
 
-通过 Windows 的应用设置或安装程序卸载 OpenFic。项目数据仍保留在 `%APPDATA%\OpenFic` 中。
+### 手动更新
 
-### macOS
-
-将 **Applications** 中的 OpenFic.app 移到废纸篓。需要删除项目数据时，再手动处理 `~/Library/Application Support/OpenFic`。
-
-### Linux
-
-删除 AppImage 或 `.tar.gz` 解压目录即可。项目数据仍保留在 `~/.config/OpenFic` 中。
-
-<Warning>
-  卸载应用不会自动删除项目数据。如果确认不再需要这些数据，请在备份后手动删除对应的数据目录。
-</Warning>
-
-## 常见问题
-
-### Linux 无法启动 AppImage
-
-确认文件具有执行权限，并从终端启动：
-
-```bash
-chmod +x OpenFic-VERSION-linux-ARCH.AppImage
-./OpenFic-VERSION-linux-ARCH.AppImage
-```
-
-### 应用启动后没有项目
-
-确认你使用的是原来的系统用户，并检查默认数据目录是否被移动或删除。升级时不要清理系统用户数据目录。
+<Steps>
+  <Step title="下载新版本">
+    前往 [Github Release](https://github.com/syrizelink/OpenFic/releases/latest) 下载最新与你的系统架构相匹配的安装包
+  </Step>
+  <Step title="安装">
+    完全关闭旧版桌面应用，然后安装或解压新版本至原路径
+  </Step>
+  <Step title="启动">
+    启动应用，等待本地实例完成更新即可
+  </Step>
+</Steps>

@@ -22,123 +22,122 @@ Python 安装方式适合希望直接运行本地服务、进行开发或使用�
   直接使用 pip 进行安装可能会对系统的全局 Python 环境造成污染，如果你不希望影响现有环境，请考虑使用 uv、Conda或Venv
 </Note>
 
-1. 安装 OpenFic
+<Steps>
+  <Step title="安装 OpenFic">
+    ```bash
+    pip install openfic
+    ```
+  </Step>
+  <Step title="启动服务器">
+    ```shellscript
+    openfic serve
+    ```
+  </Step>
+  <Step title="打开 OpenFic">
+    等待启动完成后，在浏览器中打开：
 
-```bash
-pip install openfic
-```
-
-2. 启动服务器
-
-```shellscript
-openfic serve
-```
-
-3. 打开 OpenFic
-
-等待启动完成后，在浏览器中打开：
-
-```shellscript
-http://localhost:8000
-```
+    ```shellscript
+    http://localhost:8000
+    ```
+  </Step>
+</Steps>
 
 ### uv
 
-1. 安装 [uv](https://docs.astral.sh/uv/getting-started/)
-2. 运行 OpenFic
+<Steps>
+  <Step title="安装 uv">
+    前往 [Getting Started](https://docs.astral.sh/uv/getting-started/) 按照指引安装 uv。
+  </Step>
+  <Step title="运行 OpenFic">
+    ```bash
+    uvx --python 3.12 openfic@latest serve
+    ```
+  </Step>
+  <Step title="打开 OpenFic">
+    等待启动完成后，在浏览器中打开：
 
-```bash
-uvx --python 3.12 openfic@latest serve
-```
-
-3. 打开 OpenFic
-
-等待启动完成后，在浏览器中打开：
-
-```shellscript
-http://localhost:8000
-```
+    ```shellscript
+    http://localhost:8000
+    ```
+  </Step>
+</Steps>
 
 ### Conda
 
-1. 安装 [Anaconda 或 Miniconda](https://www.anaconda.com/docs/getting-started/installation)
-2. 创建 Conda 虚拟环境
-
-```shellscript
-conda create -n openfic python=3.12
-```
-
-3. 激活环境
-
-```shellscript
-conda activate openfic
-```
-
-4. 安装 OpenFic
-
-```shellscript
-pip install openfic
-```
-
-5. 启动服务器
-
-```bash
-openfic serve
-```
-
-6. 打开 OpenFic
-
-等待启动完成后，在浏览器中打开：
-
-```shellscript
-http://localhost:8000
-```
+<Steps>
+  <Step title="安装 Anaconda 或 Miniconda">
+    前往 [Getting Started](https://www.anaconda.com/docs/getting-started/installation) 按照指引安装 Anaconda 或 Miniconda。
+  </Step>
+  <Step title="创建 Conda 虚拟环境">
+    ```shellscript
+    conda create -n openfic python=3.12
+    ```
+  </Step>
+  <Step title="激活环境">
+    ```shellscript
+    conda activate openfic
+    ```
+  </Step>
+  <Step title="安装 OpenFic">
+    ```shellscript
+    pip install openfic
+    ```
+  </Step>
+  <Step title="启动服务器">
+    ```bash
+    openfic serve
+    ```
+  </Step>
+  <Step title="打开 OpenFic">
+    ```shellscript
+    http://localhost:8000
+    ```
+  </Step>
+</Steps>
 
 ### Venv
 
 `venv` 是 Python 内置的虚拟环境工具
 
-1. 创建虚拟环境
+<Steps>
+  <Step title="创建虚拟环境">
+    ```shellscript
+    python -m venv .venv
+    ```
 
-```shellscript
-python -m venv .venv
-```
+    该命令会在当前目录下创建，因此在运行前请先切换至期望的安装路径
+  </Step>
+  <Step title="激活虚拟环境">
+    Linux/macOS：
 
-该命令会在当前目录下创建，因此在运行前请先切换至期望的安装路径
+    ```shellscript
+    source venv/bin/activate
+    ```
 
-2. 激活虚拟环境
+    Windows：
 
-Linux/macOS：
+    ```shellscript
+    venv\Scripts\activate
+    ```
+  </Step>
+  <Step title="安装 OpenFic">
+    ```shellscript
+    pip install openfic
+    ```
+  </Step>
+  <Step title="启动服务器">
+    ```bash
+    openfic serve
+    ```
+  </Step>
+  <Step title="打开 OpenFic">
+    等待启动完成后，在浏览器中打开：
 
-```shellscript
-source venv/bin/activate
-```
-
-Windows：
-
-```shellscript
-venv\Scripts\activate
-```
-
-3. 安装 OpenFic
-
-```shellscript
-pip install openfic
-```
-
-4. 启动服务器
-
-```bash
-openfic serve
-```
-
-5. 打开 OpenFic
-
-等待启动完成后，在浏览器中打开：
-
-```shellscript
-http://localhost:8000
-```
+    ```shellscript
+    http://localhost:8000
+    ```
+  </Step>
+</Steps>
 
 ## 常用配置
 
@@ -213,7 +212,7 @@ conda env remove -n openfic
 
 ### uv
 
-uvx 不会将 OpenFic 安装到当前 Python 环境，因此不需要单独卸载，需要时可以按照 [uv 缓存文档](https://docs.astral.sh/uv/concepts/cache/) 清理缓存。
+uvx 不会将 OpenFic 安装到当前 Python 环境，因此不需要单独卸载，需要时可以按照 [uv 缓存文档](https://docs.astral.sh/uv/concepts/cache/) 进行清理。
 
 <Warning>
   卸载软件包或删除虚拟环境不会删除 `~/.openfic` 中的项目和配置。如果确认不再需要这些数据，请在备份后手动删除数据目录。

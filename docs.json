@@ -20,6 +20,15 @@
           "installation/docker",
           "installation/python",
           "installation/desktop"
+        ],
+        "expanded": true
+      },
+      {
+        "group": "快速入门",
+        "expanded": true,
+        "pages": [
+          "getting_started/provider",
+          "untitled-page-2"
         ]
       },
       {

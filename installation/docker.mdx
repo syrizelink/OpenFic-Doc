@@ -10,45 +10,83 @@ sidebarTitle: "使用 Docker"
 
 ## 快速开始
 
-### 1. 拉取镜像
+### Docker
 
-从 GitHub Container Registry 拉取 OpenFic 镜像：
+<Steps>
+  <Step title="拉取镜像">
+    从 GitHub Container Registry 拉取 OpenFic 镜像：
 
-```bash
-docker pull ghcr.io/syrizelink/openfic:latest
-```
+    ```bash
+    docker pull ghcr.io/syrizelink/openfic:latest
+    ```
+  </Step>
+  <Step title="启动容器">
+    ```bash
+    docker run -d -p 8000:8000 -v "openfic:/data" \
+    	--name openfic --restart unless-stopped \
+    	ghcr.io/syrizelink/openfic:latest
+    ```
 
-### 2. 启动容器
+    | 参数 | 用途 |
+    | :-- | :-- |
+    | `-d` | 在后台运行容器。 |
+    | `-p 8000:8000` | 将**主机**的`8000`端口映射到**容器**的`8000`端口。 |
+    | `-v "openfic:/data"` | 持久化存储，将名为`openfic`的 Docker 数据卷挂载到容器的`/data`，以防止重启后丢失数据 |
+    | `--name openfic` | 为容器命名 |
+    | `--restart unless-stopped` | Docker 服务重启后自动启动 OpenFic，除非你手动停止了容器。 |
+  </Step>
+  <Step title="打开 OpenFic">
+    容器启动后，在浏览器中打开：
 
-```bash
-docker run -d -p 8000:8000 -v "openfic:/data" \
-	--name openfic --restart unless-stopped \
-	ghcr.io/syrizelink/openfic:latest
-```
+    ```shellscript
+    http://localhost:8000
+    ```
 
-| 参数 | 用途 |
-| --- | :-- |
-| `-d` | 在后台运行容器。 |
-| `-p 8000:8000` | 将**主机**的 `8000` 端口映射到**容器**的 `8000` 端口。 |
-| `-v "openfic:/data"` | 持久化存储，将名为 `openfic` 的 Docker 数据卷挂载到容器的 `/data`，以防止重启后丢失数据 |
-| `--name openfic` | 为容器命名 |
-| `--restart unless-stopped` | Docker 服务重启后自动启动 OpenFic，除非你手动停止了容器。 |
+    如你在云服务器上运行，请将`localhost`替换为服务器的公网IP，并在防火墙放行`8000`端口。
+  </Step>
+</Steps>
 
-### 3. 打开 OpenFic
+### Docker Compose
 
-容器启动后，在浏览器中打开：
+<Steps>
+  <Step title="编写配置文件">
+    以下是使用 Docker Compose 的示例配置文件`docker-compose.yml`：
 
-```text
-http://localhost:8000
-```
+    ```yaml
+    services:
+      openfic:
+        image: ghcr.io/syrizelink/openfic:latest
+        ports:
+          - "8000:8000"
+        volumes:
+          - openfic:/data
+        restart: unless-stopped
+    
+    volumes:
+      openfic-data:
+    ```
 
-如你在云服务器上运行，请将 `localhost` 替换为服务器的公网IP，并在防火墙放行 `8000` 端口。
+    也可以从 [Github](https://github.com/syrizelink/OpenFic/blob/main/docker-compose.yml) 下载示例的配置文件。
+  </Step>
+  <Step title="启动服务">
+    ```shellscript
+    docker compose up -d
+    ```
+  </Step>
+  <Step title="打开 OpenFic">
+    容器启动后，在浏览器中打开：
+
+    ```shellscript
+    http://localhost:8000
+    ```
+  </Step>
+</Steps>
 
 ## 常用配置
 
 ### 自定义端口
 
-如果主机的 `8000` 端口已经被占用，或你希望使用其它端口，可以只修改端口映射。例如，下面的命令会通过主机的 `8080` 端口访问 OpenFic：
+如果主机的`8000`端口已经被占用，或你希望使用其它端口，可以只修改端口映射。例如，下面的命令会通过主机的`8080`端口访问 OpenFic：
 
 ```bash
 docker run -d -p 8080:8000 -v "openfic:/data" \
@@ -56,11 +94,11 @@ docker run -d -p 8080:8000 -v "openfic:/data" \
 	ghcr.io/syrizelink/openfic:latest
 ```
 
-然后打开 `http://localhost:8080`。
+然后打开`http://localhost:8080`。
 
 ### 保存数据至本地目录
 
-默认命令使用 Docker named volume 进行数据持久化，你也可以将主机目录挂载到 `/data`：
+默认命令使用 Docker named volume 进行数据持久化，你也可以将主机目录挂载到`/data`：
 
 ```bash
 docker run -d -p 8000:8000 -v "/absolute/path/to/openfic-data:/data" \
@@ -68,11 +106,11 @@ docker run -d -p 8000:8000 -v "/absolute/path/to/openfic-data:/data" \
 	ghcr.io/syrizelink/openfic:latest
 ```
 
-将 `/absolute/path/to/openfic-data` 替换为主机上的实际目录，请确保 Docker 对该目录具有读写权限。
+将`/absolute/path/to/openfic-data`替换为主机上的实际目录，请确保 Docker 对该目录具有读写权限。
 
 ### 固定版本
 
-OpenFic 遵循 [Semantic Versioning](https://semver.org/) 的版本号发布规范，你可以使用如 `:X.Y.Z` 的版本标签拉取特定版本的镜像，在 [Package Versions](https://github.com/syrizelink/OpenFic/pkgs/container/openfic/versions) 可用查询到所有可用的版本号。
+OpenFic 遵循 [Semantic Versioning](https://semver.org/) 的版本号发布规范，你可以使用如`:X.Y.Z`的版本标签拉取特定版本的镜像，在 [Package Versions](https://github.com/syrizelink/OpenFic/pkgs/container/openfic/versions) 可以查询到所有可用的版本号。
 
 ```bash
 docker run -d -p 8000:8000 -v "openfic:/data" \
@@ -80,66 +118,87 @@ docker run -d -p 8000:8000 -v "openfic:/data" \
 	ghcr.io/syrizelink/openfic:X.Y.Z
 ```
 
-将 `:X.Y.Z` 替换为你需要固定的版本号，这会将容器锁定在选定的版本，并且永远不会更改。
+将`:X.Y.Z`替换为你需要固定的版本号，这会将容器锁定在选定的版本，并且永远不会更改。
 
 ## 更新
 
 ### 自动更新
 
+要使用自动更新，请确保容器使用的镜像标签`latest`而非固定版本。
+
 你可以使用 [Watchtower](https://github.com/nicholas-fedor/watchtower) 自动处理更新过程：
 
 ```shellscript
 docker run --rm \
-	--volume /var/run/docker.sock:/var/run/docker.sock \
+	-v /var/run/docker.sock:/var/run/docker.sock \
 	nickfedor/watchtower --run-once openfic
 ```
 
-如果你使用了自定义名称，请将 `openfic` 替换为实际使用的容器名。
+如果你使用了自定义名称，请将`openfic`替换为实际使用的容器名。
+
+如果需要启用定时检查并自动更新，请启动一个保持运行的 Watchtower 容器：
+
+```shellscript
+docker run -d \
+	  --name openfic-watchtower --restart unless-stopped \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  nickfedor/watchtower --interval 86400 openfic
+```
+
+该容器会每隔 86400s(24h) 检查一次更新。
+
+如果需要定点更新，可以将命令中的`--interval 86400`改为使用 Cron 表达式：
+
+例如，可以使用`--schedule "0 3 * * *"` 指定在每天凌晨 3:00 检查并处理自动更新
+
+如果想在更新后自动删除旧镜像以节省空间，可以加上`--cleanup`参数：
+
+例如：`--schedule "0 4 * * *" --cleanup`
 
 ### 手动更新
 
-1. 停止并删除当前容器
+<Steps>
+  <Step title="停止并删除当前容器">
+    ```shellscript
+    docker rm -f openfic
+    ```
+  </Step>
+  <Step title="拉取最新版本">
+    ```shellscript
+    docker pull ghcr.io/syrizelink/openfic:latest
+    ```
+  </Step>
+  <Step title="重启容器">
+    ```shellscript
+    docker run -d -p 8000:8000 -v "openfic:/data" \
+    	--name openfic --restart unless-stopped \
+    	ghcr.io/syrizelink/openfic:latest
+    ```
 
-```shellscript
-docker rm -f openfic
-```
-
-2. 拉取最新版本
-
-```shellscript
-docker pull ghcr.io/syrizelink/openfic:latest
-```
-
-3. 重启容器
-
-```shellscript
-docker run -d -p 8000:8000 -v "openfic:/data" \
-	--name openfic --restart unless-stopped \
-	ghcr.io/syrizelink/openfic:latest
-```
-
-如果你使用了自定义端口或本地目录，请在重新创建容器时保留对应的 `-p` 和 `-v` 参数。
+    如果你使用了自定义端口或本地目录，请在重新创建容器时保留对应的`-p`和`-v`参数。
+  </Step>
+</Steps>
 
 ## 卸载
 
-1. 停止并删除当前容器
+<Steps>
+  <Step title="停止并删除当前容器">
+    ```bash
+    docker rm -f openfic
+    ```
+  </Step>
+  <Step title="删除本地镜像（可选）">
+    ```bash
+    docker image rm ghcr.io/syrizelink/openfic:latest
+    ```
+  </Step>
+  <Step title="删除数据卷（可选）">
+    ```bash
+    docker volume rm openfic
+    ```
 
-```bash
-docker rm -f openfic
-```
-
-2. 删除本地镜像（可选）
-
-```bash
-docker image rm ghcr.io/syrizelink/openfic:latest
-```
-
-3. 删除数据卷（可选）
-
-```bash
-docker volume rm openfic
-```
-
-<Warning>
-  这会永久删除该数据卷中的项目、数据库和配置，除非你确定不再需要，否则在删除前请先完成备份。
-</Warning>
+    <Warning>
+      这会永久删除该数据卷中的项目、数据库和配置，除非你确定不再需要，否则在删除前请先完成备份。
+    </Warning>
+  </Step>
+</Steps>
