@@ -39,12 +39,7 @@
     "href": "https://github.com/syrizelink/OpenFic"
   },
   "navbar": {
-    "links": [],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
-    }
+    "links": []
   },
   "contextual": {
     "options": [
