@@ -30,19 +30,13 @@
           "getting_started/provider",
           "untitled-page-2"
         ]
-      },
-      {
-        "group": "Getting Started",
-        "pages": [
-          "int",
-          "quickstart"
-        ]
       }
     ]
   },
   "logo": {
     "light": "/images/brand-light.svg",
-    "dark": "/images/brand-dark.svg"
+    "dark": "/images/brand-dark.svg",
+    "href": "https://github.com/syrizelink/OpenFic"
   },
   "navbar": {
     "links": [],

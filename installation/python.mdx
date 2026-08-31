@@ -12,8 +12,6 @@ sidebarTitle: "使用 Python"
   OpenFic 仅支持 **Python 3.12 和 3.13**，如果使用其它版本可能会在安装或运行时出错
 </Warning>
 
-Python 安装方式适合希望直接运行本地服务、进行开发或使用低资源环境的用户。OpenFic 启动后，可以通过 `http://localhost:8000` 访问。
-
 ## 快速开始
 
 ### pip
@@ -215,5 +213,5 @@ conda env remove -n openfic
 uvx 不会将 OpenFic 安装到当前 Python 环境，因此不需要单独卸载，需要时可以按照 [uv 缓存文档](https://docs.astral.sh/uv/concepts/cache/) 进行清理。
 
 <Warning>
-  卸载软件包或删除虚拟环境不会删除 `~/.openfic` 中的项目和配置。如果确认不再需要这些数据，请在备份后手动删除数据目录。
+  卸载软件包或删除虚拟环境不会删除 `~/.openfic` 中的项目和配置。如果确认不再需要这些数据，请手动删除数据目录。
 </Warning>
