@@ -14,7 +14,7 @@ sidebarTitle: "使用 Docker"
 
 <Steps>
   <Step title="拉取镜像">
-    从 GitHub Container Registry 拉取 OpenFic 镜像：
+    从 [GitHub Container Registry](https://github.com/syrizelink/OpenFic/pkgs/container/openfic) 拉取 OpenFic 镜像：
 
     ```bash
     docker pull ghcr.io/syrizelink/openfic:latest
@@ -36,11 +36,7 @@ sidebarTitle: "使用 Docker"
     | `--restart unless-stopped` | Docker 服务重启后自动启动 OpenFic，除非你手动停止了容器。 |
   </Step>
   <Step title="打开 OpenFic">
-    容器启动后，在浏览器中打开：
-
-    ```shellscript
-    http://localhost:8000
-    ```
+    容器启动后，在浏览器中打开 [http://localhost:8000](http://localhost:8000)。
 
     如你在云服务器上运行，请将`localhost`替换为服务器的公网IP，并在防火墙放行`8000`端口。
   </Step>
@@ -74,11 +70,7 @@ sidebarTitle: "使用 Docker"
     ```
   </Step>
   <Step title="打开 OpenFic">
-    容器启动后，在浏览器中打开：
-
-    ```shellscript
-    http://localhost:8000
-    ```
+    容器启动后，在浏览器中打开 [http://localhost:8000](http://localhost:8000)。
   </Step>
 </Steps>
 
@@ -94,7 +86,7 @@ docker run -d -p 8080:8000 -v "openfic:/data" \
 	ghcr.io/syrizelink/openfic:latest
 ```
 
-然后打开`http://localhost:8080`。
+然后打开 [http://localhost:8080](http://localhost:8080)。
 
 ### 保存数据至本地目录
 
