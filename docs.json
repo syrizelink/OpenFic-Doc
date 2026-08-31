@@ -39,7 +39,12 @@
     "href": "https://github.com/syrizelink/OpenFic"
   },
   "navbar": {
-    "links": []
+    "links": [
+      {
+        "href": "https://github.com/syrizelink/OpenFic",
+        "label": "Github"
+      }
+    ]
   },
   "contextual": {
     "options": [
@@ -51,11 +56,6 @@
       "grok",
       "aistudio"
     ]
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/syrizelink/OpenFic"
-    }
   },
   "background": {
     "color": {
@@ -70,12 +70,17 @@
     "latex": true
   },
   "metadata": {
-    "timestamp": true
+    "timestamp": false
   },
   "markdown": {
     "schema": true
   },
   "fonts": {
     "family": "Noto Serif SC"
+  },
+  "banner": {
+    "content": "🔔本文档仍在编写中，一些内容可能随时发生变化，请以实际功能为准",
+    "dismissible": true,
+    "type": "info"
   }
 }
