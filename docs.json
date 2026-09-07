@@ -28,7 +28,14 @@
         "expanded": true,
         "pages": [
           "getting_started/provider",
-          "getting_started/model"
+          "getting_started/model",
+          "untitled-page-2"
+        ]
+      },
+      {
+        "group": "功能",
+        "pages": [
+          "untitled-page-3"
         ]
       }
     ]
