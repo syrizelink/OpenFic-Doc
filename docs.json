@@ -29,13 +29,14 @@
         "pages": [
           "getting_started/provider",
           "getting_started/model",
-          "untitled-page-2"
+          "getting_started/first_step"
         ]
       },
       {
         "group": "功能",
         "pages": [
-          "untitled-page-3"
+          "feature/skill",
+          "feature/agent"
         ]
       }
     ]
