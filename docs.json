@@ -47,12 +47,10 @@
     "href": "https://github.com/syrizelink/OpenFic"
   },
   "navbar": {
-    "links": [
-      {
-        "href": "https://github.com/syrizelink/OpenFic",
-        "label": "Github"
-      }
-    ]
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/syrizelink/OpenFic"
+    }
   },
   "contextual": {
     "options": [
