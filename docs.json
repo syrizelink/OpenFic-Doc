@@ -12,32 +12,30 @@
     "dark": "/images/dark.svg"
   },
   "navigation": {
-    "pages": [
-      "index",
+    "tabs": [
       {
-        "group": "安装",
+        "tab": "使用指南",
         "pages": [
-          "installation/docker",
-          "installation/python",
-          "installation/desktop",
-          "postgre-sql"
-        ],
-        "expanded": true
-      },
-      {
-        "group": "快速入门",
-        "expanded": true,
-        "pages": [
-          "getting_started/provider",
-          "getting_started/model",
-          "getting_started/first_step"
-        ]
-      },
-      {
-        "group": "功能",
-        "pages": [
-          "feature/skill",
-          "feature/agent"
+          "index",
+          {
+            "group": "安装",
+            "expanded": true,
+            "pages": [
+              "installation/docker",
+              "installation/python",
+              "installation/desktop",
+              "postgre-sql"
+            ]
+          },
+          {
+            "group": "快速入门",
+            "expanded": true,
+            "pages": [
+              "getting_started/provider",
+              "getting_started/model",
+              "getting_started/first_step"
+            ]
+          }
         ]
       }
     ]
