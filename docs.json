@@ -19,7 +19,8 @@
         "pages": [
           "installation/docker",
           "installation/python",
-          "installation/desktop"
+          "installation/desktop",
+          "postgre-sql"
         ],
         "expanded": true
       },
@@ -88,5 +89,6 @@
     "content": "🔔本文档仍在编写中，一些内容可能随时发生变化，请以实际功能为准",
     "dismissible": true,
     "type": "info"
-  }
+  },
+  "description": "A cross-platform, user-friendly, AI-native, all-in-one Vibe Writing tool designed specifically for novel writing."
 }

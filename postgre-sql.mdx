@@ -1,0 +1,286 @@
+---
+title: "迁移到 PostgreSQL"
+---
+
+默认情况下，OpenFic 使用 SQLite 作为默认存储后端，SQLite 作为一种嵌入式数据库，更加轻量且有着更佳的便携性。但是由于 SQLite 将所有数据存储在一个文件中，这导致了它无法很好的处理多个并行的写入操作，尤其是在使用大量 Agent 协同工作或是同时进行多个项目或会话的情况下，这种性能问题会愈发明显，从而带来明显的竞争延迟。而 PostgreSQL 作为一种为生产环境设计的数据库，能够支持大量的连接与并发操作。
+
+<Tip>
+  如果你符合以下情况，通常继续使用 SQLite 就足够了：不使用大量 Agent 同时工作（>5个）的会话、数据库文件位于 SSD/NVMe 设备上、不同时在多个项目中工作。
+</Tip>
+
+<Warning>
+  仅支持基于 Python 和 Docker 安装的 OpenFic 实例。
+</Warning>
+
+## 准备工作
+
+在开始迁移之前，你需要先准备好可用的 PostgreSQL 数据库，如果希望在本地进行安装，参阅 [PostgreSQL Downloads](https://www.postgresql.org/download/)。
+
+OpenFic 默认采用两个库文件来存放数据，分别是用于存储业务数据的`openfic.db`和用于存储 Agent 检查点数据的`checkpoints.db`。
+
+两个数据库通常建议分开存放以避免潜在的问题，为此你需要创建两个不同 PostgreSQL 数据库，分别指向并替代它们。
+
+<table>
+  <colgroup>
+    <col width="138" />
+    <col width="359" />
+    <col width="138" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th style={{ textAlign: "center" }}>数据库</th>
+      <th style={{ textAlign: "center" }}>涉及内容</th>
+      <th style={{ textAlign: "center" }}>数据是否可迁移</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style={{ textAlign: "center" }}>openfic.db</td>
+      <td style={{ textAlign: "center" }}>项目、章节、角色、消息记录和统计数据等</td>
+      <td style={{ textAlign: "center" }}>是</td>
+    </tr>
+    <tr>
+      <td style={{ textAlign: "center" }}>checkpoints.db</td>
+      <td style={{ textAlign: "center" }}>Agent 运行状态、检查点和恢复所需的图状态等</td>
+      <td style={{ textAlign: "center" }}>否</td>
+    </tr>
+  </tbody>
+</table>
+
+其中，业务数据可以通过内置的`db migrate`工具将数据从 SQLite 迁移到 PostgreSQL，这种迁移通常是无损的，这是由于内置的数据结构与相关查询在设计时已经尽量考虑了二者的差异以提高兼容性。
+
+而对于`checkpoints.db`而言，两种数据库分别对应着[LangGraph SQLite Checkpoint](https://reference.langchain.com/python/langgraph.checkpoint.sqlite)和[LangGraph Checkpoint Postgres](https://reference.langchain.com/python/langgraph.checkpoint.postgres)。这两种 Checkpoint Saver 的结构并不相同，很难在二者之间无缝的重用，因此无法将迁移这类数据。
+
+<Danger>
+  迁移到 PostgreSQL 后，由于检查点数据会被丢弃，这会导致：无法回滚或分叉旧会话、中断或暂停的会话不再可继续（仍可通过发送新消息继续）
+</Danger>
+
+为了确保数据安全并避免迁移时可能导致的数据丢失，请务必在开始前备份数据，包括`openfic.db`和`checkpoints.db`所在的整个数据目录。
+
+## 从 SQLite 迁移至 PostgreSQL
+
+迁移过程只会将旧数据库中的数据尽力复制到新数据库，而不会自动修改 OpenFic 的存储配置，因此你需要先完成数据迁移，再切换数据库后端。如果是首次安装且没有需要保留的数据，可以直接跳过本节，参阅 [安装 PostgreSQL 版本的 OpenFic](#安装-postgresql-版本的-openfic)。
+
+<Steps>
+  <Step title="创建数据库">
+    使用 PostgreSQL 客户端连接数据库服务器后，创建两个数据库：
+
+    ```sql
+    CREATE DATABASE openfic;
+    CREATE DATABASE openfic_checkpoints;
+    ```
+
+    其中，`openfic`用于存储业务数据，`openfic_checkpoints`用于存储新的 Agent 检查点数据。如果你使用基于云服务商的托管数据库，也可以通过服务商提供的控制台完成创建。
+
+    请确保 OpenFic 使用的数据库账号能够连接这两个数据库，并具有创建和读写表的权限。
+  </Step>
+  <Step title="停止 OpenFic">
+    在迁移之前，请先等待正在运行的 Agent 完成工作，然后完全停止 OpenFic，以避免迁移过程中仍有新的数据写入，从而导致迁移失败甚至丢失数据。
+
+    如果使用 Python，在启动服务的终端中按下 `Ctrl+C`；
+
+    如果使用 Docker，则执行，其中`openfic`应更换为创建时指定的容器名称：
+
+    ```bash
+    docker stop openfic
+    ```
+
+    请在服务停止后备份整个数据目录（或存储卷），并在迁移完成且确认数据完整无误前保留原有的 SQLite 配置。
+  </Step>
+  <Step title="迁移业务数据">
+    迁移工具包含在了 PostgreSQL 版本的 OpenFic 包当中，而默认包中并不存在 PostgreSQL 的相关依赖，因此你需要先进行安装：
+
+    <Tabs>
+      <Tab title="Python">
+        在原有的 Python 环境中安装 PostgreSQL 依赖：
+
+        ```bash
+        pip install --upgrade "openfic[postgresql]"
+        ```
+
+        然后使用 CLI 的迁移工具，并在参数中指定源数据库文件和目标 PostgreSQL 数据库：
+
+        ```bash
+        openfic db migrate --source-url "sqlite:////absolute/path/to/openfic.db" --target-url "postgresql+psycopg://openfic_user:your_password@db.example.com:5432/openfic"
+        ```
+
+        将`/absolute/path/to/openfic.db`替换为实际的数据库文件路径。默认情况下，该文件位于`~/.openfic/openfic.db`，在填入参数时请使用展开后的绝对路径。
+
+        如果使用 Windows，默认源地址为`sqlite:///C:/Users/用户名/.openfic/openfic.db`。
+
+        如果通过 uvx 运行，可以使用：
+
+        ```bash
+        uvx --python 3.12 --from "openfic[postgresql]@latest" openfic db migrate --source-url "sqlite:////absolute/path/to/openfic.db" --target-url "postgresql+psycopg://openfic_user:your_password@db.example.com:5432/openfic"
+        ```
+      </Tab>
+      <Tab title="Docker">
+        拉取包含 PostgreSQL 依赖的镜像：
+
+        ```bash
+        docker pull ghcr.io/syrizelink/openfic:latest-postgresql
+        ```
+
+        使用原有数据卷启动一个临时容器来完成迁移：
+
+        ```bash
+        docker run --rm \
+          -v "openfic:/data" \
+          --entrypoint /app/.venv/bin/openfic \
+          ghcr.io/syrizelink/openfic:latest-postgresql \
+          db migrate \
+          --source-url "sqlite:////data/openfic.db" \
+          --target-url "postgresql+psycopg://openfic_user:your_password@db.example.com:5432/openfic"
+        ```
+
+        如果之前使用本地目录存储数据，请将`-v "openfic:/data"`替换为原有的目录挂载参数。如果数据库位于其他 Docker 容器中，还需要通过`--network`将临时容器连接到对应的网络。
+      </Tab>
+    </Tabs>
+
+    示例中的`openfic_user`、`your_password`和`db.example.com`分别为数据库用户名、密码和服务器地址，请替换为实际的连接信息。
+
+    <Note>
+      目标业务数据库必须为空，以便迁移工具自动创建所需的表结构并处理数据结构差异。<br />如果目标库已经包含业务数据，迁移会被拒绝，不会覆盖已有数据。<br />连接地址中的用户名或密码如果包含`@`、`:`、`/`等特殊字符，需要先进行 URL 编码。
+    </Note>
+  </Step>
+  <Step title="确认迁移结果">
+    迁移完成后，终端会显示`数据库迁移完成`，并附带迁移的表数、记录数和校验结果。其中，`checks=rows,primary-keys,foreign-keys,checksum:ok`表示记录数、主键、外键和数据校验均已通过。
+
+    如果提示源数据库版本不匹配，请先使用最新版本的 OpenFic 在 SQLite 配置下启动一次，等待数据库升级完成且能够正常启动并访问后停止服务，再重新执行迁移。
+
+    在某些情况下，迁移会失败并提示`存在无法解析的外键引用`。迁移工具提供了的`--repair-orphaned-references`参数可以在导入时将可空的悬空引用置为`NULL`，并删除无法保留的悬空记录；该参数通常不会导致数据丢失或无法使用，但由于会使目标数据发生变化，请在确认错误内容并完成备份后再决定是否使用。
+  </Step>
+</Steps>
+
+迁移成功后，请继续按照以下步骤切换 OpenFic 的数据库配置。原有 SQLite 文件仍会保留而不会被迁移工具自动删除，但切换后新增的数据只会根据启动时设置写入选定的 PostgreSQL 中。
+
+## 安装 PostgreSQL 版本的 OpenFic
+
+OpenFic 通过可选依赖提供 PostgreSQL 支持，你需要安装包含这些依赖的 Python 软件包或 Docker 镜像，并为业务数据库与检查点数据库分别配置连接地址。
+
+| 配置项 | 用途 |
+| :-- | :-- |
+| `OPENFIC_DATABASE_BACKEND` | 设置为`postgresql`，以将业务数据库后端切换到 PostgreSQL |
+| `OPENFIC_DATABASE_URL` | 业务数据库的连接地址，应使用`postgresql+psycopg://`格式 |
+| `OPENFIC_CHECKPOINT_DATABASE_URL` | 检查点数据库的连接地址，应使用`postgresql://`格式 |
+
+<Warning>
+  即使将数据库迁移到 PostgreSQL，OpenFic 仍然需要本地数据目录来保存密钥、封面和附件等文件。如果是从已有实例迁移，请继续使用原有数据目录，尤其需要保留其中的`.key`文件，否则可能**无法解密**原有的模型提供商 API Key 等敏感配置。
+</Warning>
+
+### Python
+
+<Steps>
+  <Step title="安装 PostgreSQL 依赖">
+    如果使用 pip、Conda 或 Venv，请先激活对应的环境，然后执行：
+
+    ```bash
+    pip install --upgrade "openfic[postgresql]"
+    ```
+
+    如果在迁移数据时已经完成安装，可以跳过此步骤。关于 Python 环境的准备方式，参阅[使用 Python](/installation/python)。
+  </Step>
+  <Step title="配置数据库连接">
+    在 OpenFic 的数据目录中创建或编辑`.env`文件，加入以下配置。如果使用默认数据目录，该文件位于`~/.openfic/.env`：
+
+    ```dotenv
+    OPENFIC_DATABASE_BACKEND=postgresql
+    OPENFIC_DATABASE_URL=postgresql+psycopg://openfic_user:your_password@db.example.com:5432/openfic
+    OPENFIC_CHECKPOINT_DATABASE_URL=postgresql://openfic_user:your_password@db.example.com:5432/openfic_checkpoints
+    ```
+
+    将连接信息替换为实际的数据库账号和地址。如果文件中已经包含其他配置，请保留原有内容，仅添加或更新这三个配置项。
+
+    如果通过`OPENFIC_DATA_DIR`指定了其他数据目录，请将`.env`放在该目录下，并在启动时继续使用相同的`OPENFIC_DATA_DIR`。如果系统环境变量中也设置了上述配置，环境变量会优先于`.env`文件生效。
+  </Step>
+  <Step title="启动服务器">
+    ```bash
+    openfic serve
+    ```
+
+    如果使用 uvx，请在每次启动时指定 PostgreSQL 依赖：
+
+    ```bash
+    uvx --python 3.12 --from "openfic[postgresql]@latest" openfic serve
+    ```
+
+    等待启动完成后，在浏览器中打开 [http://localhost:8000](http://localhost:8000)。首次使用 PostgreSQL 检查点后端时，OpenFic 会自动初始化相关表结构。
+  </Step>
+</Steps>
+
+### Docker
+
+PostgreSQL 版本的镜像使用`latest-postgresql`标签。如果需要固定版本，可以使用`X.Y.Z-postgresql`格式的版本标签。
+
+<Steps>
+  <Step title="拉取镜像">
+    ```bash
+    docker pull ghcr.io/syrizelink/openfic:latest-postgresql
+    ```
+  </Step>
+  <Step title="配置数据库连接">
+    在用于运行 Docker 命令的目录中创建`.env.postgresql`文件：
+
+    ```dotenv
+    OPENFIC_DATABASE_BACKEND=postgresql
+    OPENFIC_DATABASE_URL=postgresql+psycopg://openfic_user:your_password@db.example.com:5432/openfic
+    OPENFIC_CHECKPOINT_DATABASE_URL=postgresql://openfic_user:your_password@db.example.com:5432/openfic_checkpoints
+    ```
+
+    将连接信息替换为实际值，并确保数据库服务器可以从容器内访问。容器中的`localhost`指向容器自身；如果 PostgreSQL 位于同一个 Docker 网络中的其他容器，请使用对应的服务名作为主机地址。
+  </Step>
+  <Step title="启动容器">
+    如果从已有容器迁移，在确认数据迁移成功后，删除已经停止的旧容器：
+
+    ```bash
+    docker rm openfic
+    ```
+
+    然后使用 PostgreSQL 镜像和连接配置重新创建容器：
+
+    ```bash
+    docker run -d -p 8000:8000 \
+      -v "openfic:/data" \
+      --env-file .env.postgresql \
+      --name openfic --restart unless-stopped \
+      ghcr.io/syrizelink/openfic:latest-postgresql
+    ```
+
+    如果之前使用了自定义端口、本地目录或 Docker 网络，请在重新创建时保留对应的`-p`、`-v`和`--network`参数。
+
+    如果使用 Docker Compose，可以将原有配置修改为：
+
+    ```yaml
+    services:
+      openfic:
+        image: ghcr.io/syrizelink/openfic:latest-postgresql
+        ports:
+          - "8000:8000"
+        volumes:
+          - openfic:/data
+        env_file:
+          - .env.postgresql
+        restart: unless-stopped
+    
+    volumes:
+      openfic:
+    ```
+
+    将`.env.postgresql`放在 Compose 配置文件所在的目录下，然后在原有 Compose 项目目录中执行：
+
+    ```bash
+    docker compose up -d
+    ```
+
+    如果原有配置使用了其他数据卷或挂载目录，请保留原有的卷配置。通过 Compose 创建的数据卷名称通常包含项目名前缀，请确保迁移命令和新容器实际使用的是同一个数据卷。
+  </Step>
+  <Step title="确认服务正常运行">
+    在浏览器中打开 [http://localhost:8000](http://localhost:8000)，检查原有项目、章节和消息记录是否完整，并发送一条新消息确认 Agent 可以正常工作。
+
+    如果容器无法启动，可以通过以下命令查看日志：
+
+    ```bash
+    docker logs openfic
+    ```
+  </Step>
+</Steps>
