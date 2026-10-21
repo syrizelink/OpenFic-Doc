@@ -1,0 +1,89 @@
+---
+title: "编辑器与宿主操作"
+description: "为编辑器添加工具，并通过 SDK 执行界面操作。"
+---
+
+编辑器扩展在章节或笔记的现有工具栏中显示按钮，点击后打开浮层或对话框。它不会占用正文区域，也不会替换内置右键菜单。
+
+## 添加工具栏入口
+
+在清单的 `views` 中加入：
+
+```json
+{
+  "id": "writing-helper",
+  "title": "写作辅助",
+  "slot": "editor.toolbar",
+  "icon": "PenLine",
+  "presentation": "popover",
+  "renderer": "declarative",
+  "render": "helper.render",
+  "action": "helper.action"
+}
+```
+
+视图需要 `ui`。`title` 同时用于 Tooltip 和无障碍名称；`presentation` 可以设为 `dialog`。iframe 视图也支持相同入口。
+
+视图只在打开时挂载，关闭时卸载。需要持续执行的任务应放在后端；需要保留的界面状态可以写入插件存储。
+
+## 读取与修改当前编辑器
+
+iframe 可直接使用 `OpenFic.editor`：
+
+```javascript
+await OpenFic.ready;
+
+const snapshot = await OpenFic.editor.read();
+if (snapshot.locked) {
+  throw new Error("当前内容已锁定，请稍后重试");
+}
+
+await OpenFic.editor.insert("\n新的段落");
+await OpenFic.editor.save();
+```
+
+读取需要 `editor.read`，修改和保存需要 `editor.write`。即使你先读取了锁状态，宿主仍会在写入时重新检查。
+
+| 方法 | 用途 |
+| --- | --- |
+| `read()` | 返回类型、实体 ID、项目、标题、正文、选区和锁状态 |
+| `insert(text)` | 插入文字 |
+| `replaceSelection(text)` | 替换当前选区 |
+| `setContent(text)` | 替换当前正文 |
+| `setSelection(from, to)` | 设置选区 |
+| `focus()` / `save()` | 聚焦 / 保存 |
+| `undo()` / `redo()` | 撤销 / 重做 |
+
+章节编辑器沿用 Tiptap 和工作副本保存链。Agent 锁定期间会拒绝修改；没有打开编辑器时，调用返回上下文错误。
+
+笔记编辑器支持正文读取、设置、追加与保存，暂不支持选区和撤销操作。请根据 `snapshot.kind` 或视图上下文中的 `kind` 调整操作。
+
+声明式视图通过 action 返回 effects 执行上述操作，具体写法参见[声明式 UI](/plugin-sdk/declarative-ui)。只需要元信息时，effect 中的 `editor.read` 可传 `{"summary": true}`，避免返回完整正文。
+
+## 避免覆盖后续输入
+
+异步生成内容时，应考虑用户在等待期间继续编辑的情况。宿主对异步编辑器 hook 的结果会核对原内容和当前实体；自行发起的“读取、远端处理、写回”流程也需要设计预览、确认或冲突处理，不能将先前读取的正文当作始终有效的状态。
+
+## 使用宿主界面能力
+
+以下接口需要 `ui`：
+
+| 接口 | 用途 |
+| --- | --- |
+| `OpenFic.ui.navigate(path)` | 应用内导航 |
+| `OpenFic.ui.openExternal(url)` | 打开外部 HTTPS 页面 |
+| `OpenFic.ui.toast(text)` | 显示通知 |
+| `OpenFic.ui.confirm(text)` | 请求用户确认，返回布尔值 |
+| `OpenFic.ui.copy(text)` | 复制文字 |
+| `OpenFic.ui.download(name, text, mime)` | 下载文本 |
+| `OpenFic.ui.context()` | 获取当前路径与编辑器状态 |
+| `OpenFic.ui.invalidate()` | 刷新宿主缓存与视图 |
+| `OpenFic.assistant.fill(text)` | 向 Agent 输入框追加文字 |
+
+打开外部页面与剪贴板仍受浏览器权限约束。
+
+## 订阅编辑器变化
+
+可订阅 `editor.open`、`editor.change`、`editor.selection` 和 `editor.close`。监听器在不再使用时应取消订阅。
+
+服务端 `editor.change` hook 要求 `editor.read`；返回修改还需 `editor.write`，并需声明 `agent.hooks` 以注册 hook。详细事件名称可查询当前宿主目录。

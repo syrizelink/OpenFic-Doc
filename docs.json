@@ -64,11 +64,20 @@
           },
           {
             "group": "功能开发",
-            "pages": []
+            "pages": [
+              "plugin-sdk/data",
+              "plugin-sdk/declarative-ui",
+              "plugin-sdk/iframe",
+              "plugin-sdk/editor",
+              "plugin-sdk/services",
+              "plugin-sdk/agents"
+            ]
           },
           {
             "group": "开发与分发",
-            "pages": []
+            "pages": [
+              "plugin-sdk/devtools"
+            ]
           }
         ]
       }

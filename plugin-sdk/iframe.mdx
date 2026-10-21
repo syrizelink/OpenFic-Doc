@@ -1,0 +1,114 @@
+---
+title: "iframe 与前端 SDK"
+description: "加载已构建的前端应用，并通过消息桥调用宿主能力。"
+---
+
+当 Plugin 需要自行管理前端框架或复杂交互时，可以将构建后的 HTML、JavaScript 和 CSS 放入安装包，由 iframe 加载。
+
+## 声明视图
+
+```json
+{
+  "id": "overview",
+  "title": "项目概览",
+  "slot": "sidebar.extensions",
+  "renderer": "iframe",
+  "entry": "frontend/index.html"
+}
+```
+
+将该对象加入清单的 `views`。`entry` 必须是 `frontend/` 下的 HTML，文件应已完成构建。宿主不会在安装时执行 npm 或编译 React、Vue 源码。
+
+## 加载宿主 SDK
+
+在 `frontend/index.html` 中先加载公共 SDK：
+
+```html
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>项目概览</title>
+    <script src="../../sdk.js" defer></script>
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <pre id="output">正在加载…</pre>
+  </body>
+</html>
+```
+
+然后在 `frontend/app.js` 中等待宿主就绪，再调用本插件的后端命令：
+
+```javascript
+const output = document.getElementById("output");
+
+OpenFic.ready
+  .then(async () => {
+    const projects = await OpenFic.call("projects.list", {});
+    output.textContent = JSON.stringify(projects, null, 2);
+  })
+  .catch((error) => {
+    output.textContent = String(error);
+  });
+```
+
+这里的 `projects.list` 应按[后端与生命周期](/plugin-sdk/backend)注册，并声明 `projects.read`。
+
+SDK 路径相对于当前 HTML 所在位置。上例仅适用于 `frontend/index.html`；移动 HTML 后需要相应调整。
+
+## 使用 TypeScript 或前端框架
+
+仓库中的 `packages/plugin-sdk` 提供 `@openfic/plugin-sdk` 模块包装和类型声明。请从该目录使用 `file:` 依赖或通过 `npm pack` 安装：
+
+```bash
+# 在包含 package.json 的插件前端项目中执行；
+# 将路径替换为本机 OpenFic 仓库的实际位置。
+npm install /path/to/OpenFic/packages/plugin-sdk
+```
+
+```typescript
+import OpenFic from "@openfic/plugin-sdk";
+
+const context = await OpenFic.ready;
+if (context.chapterId) {
+  const chapter = await OpenFic.chapters.get(context.chapterId);
+  console.log(chapter);
+}
+```
+
+读取章节需要 `chapters.read`。模块包装仍依赖宿主 `sdk.js`，必须先加载它，再运行构建后的应用。
+
+<Note>
+此分支提供仓库内 SDK 包，没有在本次实现中发布 npm 包。不要假定直接从公共 registry 安装即可获得与当前分支一致的版本。
+</Note>
+
+## 处理视图上下文
+
+`OpenFic.ready` 返回 `pluginId`、`projectId`、`language`、`theme`、`settings`、`capabilities`、`slot` 和 `sdkVersion`。编辑器入口还可能包含 `chapterId`、`noteId` 与 `kind`。
+
+从全局入口打开时 `projectId` 可能为空，你需要提供项目选择，不能假定所有视图都位于某个项目中。
+
+通过 `OpenFic.on(event, listener)` 订阅事件，返回值用于取消订阅：
+
+```javascript
+await OpenFic.ready;
+const unsubscribe = OpenFic.on("data.changed", (event) => {
+  console.log("数据变化", event);
+});
+
+// 在组件卸载或不再需要事件时调用 unsubscribe()。
+```
+
+事件访问受能力检查约束。没有 `editor.read` 的视图不会收到编辑器正文。
+
+## 调整高度与隔离边界
+
+内嵌视图可设置清单 `height`，范围为 80–1600px。运行时调用 `OpenFic.ui.resize(height)`，需要 `ui`，返回宿主实际采用的高度。
+
+允许传入 0 折叠视图；通用视图最高 1600px，Agent 输入框上方最高为 420px 或窗口高度的 45%。
+
+iframe 运行在 `sandbox="allow-scripts"` 下，没有同源权限，不能直接读取主页面 DOM、cookie 或编辑器。CSP 禁止直接网络请求，联网应通过[后端 SDK](/plugin-sdk/services)。
+
+资源地址使用 15 分钟有效的静态票据，只能访问本插件资源与公共 SDK。票据到期后重新打开视图即可；停用、更新与卸载会撤销票据。

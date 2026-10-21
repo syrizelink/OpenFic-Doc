@@ -1,0 +1,96 @@
+---
+title: "存储与外部服务"
+description: "保存插件数据与密钥，读取包资源，并连接外部服务。"
+---
+
+Plugin 的运行数据与安装包分开保存。你可以使用 KV、密钥或文本文件，并通过受能力检查的 HTTP 客户端访问外部服务。
+
+## 保存插件数据
+
+需要 `storage`：
+
+```python
+async def save_progress(context, params):
+    await context.storage.set("progress", {"words": params["words"]})
+    return await context.storage.get("progress", {"words": 0})
+```
+
+Python 支持 `get/set/delete/keys`，前端对应 `OpenFic.storage`。数据按插件隔离，更新时保留，卸载时删除。
+
+单个值最大 4 MiB，KV 文件最大 8 MiB。它适合配置、映射和轻量状态，不适合无限增长的历史日志。
+
+## 保存密钥
+
+需要 `secrets`。后端可以读取当前插件的密钥：
+
+```python
+token = await context.secrets.get("accessToken")
+```
+
+前端的 `OpenFic.secrets` 只支持写入、删除和列出名称，不能读取实际值。不要通过自定义 RPC 将密钥返回给浏览器，也不要将其写入普通日志。
+
+密钥使用 Fernet 加密。标记 `secret: true` 的用户设置同样会加密保存。
+
+## 读写文本文件
+
+需要 `files`：
+
+```python
+await context.files.write("drafts/outline.txt", "第一幕：旅人抵达山谷。")
+text = await context.files.read("drafts/outline.txt")
+```
+
+该接口限定在本插件数据目录内，支持 `read/write/delete/list`。单文件最大 4 MiB，文本目录配额 40 MiB。
+
+包内资源使用另一套只读接口 `context.assets.read(name)` 或 `OpenFic.assets.read(name)`，需要 `ui`。路径相对于包内 `frontend/`，返回 `{name, mime, base64}`。单资源最大 `3 MiB - 4096 bytes`，声明式 Image 的支持格式参见[声明式 UI](/plugin-sdk/declarative-ui)。
+
+## 访问网络
+
+清单中同时声明 `network` 与精确域名：
+
+```json
+{
+  "capabilities": ["network"],
+  "network_hosts": ["api.example.com"]
+}
+```
+
+以上是需要合并到完整清单中的字段。域名不能包含协议、端口或路径，不使用通配符。
+
+```python
+async def fetch_status(context, params):
+    response = await context.http.request(
+        "GET",
+        "https://api.example.com/status",
+        headers={"Accept": "application/json"},
+    )
+    if not response["ok"]:
+        raise ValueError(f"外部服务返回 HTTP {response['status']}")
+    return response["json"]
+```
+
+请将示例域名与路径替换为实际服务。客户端返回 `status/ok/headers/text/json/base64`，不自动将非 2xx 响应转为业务异常。
+
+请求不自动跟随重定向，超时为 25 秒，响应最大 8 MiB。正常目标必须使用 HTTPS；只有显式声明的 loopback 开发服务可使用 HTTP。
+
+iframe 不能直接联网，可以调用本插件后端命令，或使用 `OpenFic.http.request(method, url, options)` 经过同一 SDK 网关。
+
+## 接入 OAuth
+
+`context.oauth.start(...)` 需要 `network` 和 `secrets`，授权与令牌地址的 hostname 均需加入 `network_hosts`。
+
+你需要提供 `authorization_url`、`token_url`、`client_id` 和 `scopes`，可选提供 `client_secret` 与 `extra`。调用必须来自插件 UI 请求，以便获取当前后端地址。
+
+宿主提供 PKCE、随机一次性 state 与 10 分钟有效期。请在服务商后台登记当前后端的以下回调地址：
+
+```text
+https://你的后端地址/plugin-oauth/callback
+```
+
+成功后的令牌保存在本插件的 `oauth.tokens` 密钥中。令牌刷新与业务 API 调用仍由插件按提供商协议实现。完整接入可参考[Google Drive 示例](/plugin-sdk/examples)。
+
+## 备份运行数据
+
+安装包导出不包含运行配置、日志和存储。备份宿主插件数据时，应同时保留插件目录下的 `.registry.json`、`.data/`、`.secret-key` 与 `.workflows.json`。
+
+丢失 `.secret-key` 后，已有加密令牌无法恢复。当前宿主使用单后端进程协调生命周期，不承诺多个 worker 共享同一插件目录时的并发更新一致性。

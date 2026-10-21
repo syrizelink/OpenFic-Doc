@@ -1,0 +1,125 @@
+---
+title: "Agent 扩展"
+description: "为 Agent 添加工具、中间件、用量观察与自定义 Graph。"
+---
+
+Plugin 可以在保留现有 Agent 的基础上添加工具和中间件，也可以为项目提供自定义 Graph。建议先选择满足需求的最小扩展范围，再决定是否替换执行流程。
+
+## 注册工具
+
+下面的只读工具返回当前会话的项目 ID，需要 `agent.tools`：
+
+```python
+async def current_project(context, arguments):
+    return {"projectId": context.runtime.get("project_id")}
+
+
+def register(host):
+    host.register_tool(
+        "current_project",
+        "读取当前 Agent 所在的项目 ID",
+        {"type": "object", "properties": {}, "additionalProperties": False},
+        current_project,
+        access_level="readonly",
+    )
+```
+
+宿主为工具添加插件命名空间，禁止覆盖内置工具。schema 必须是 object，不能包含远程 `$ref`。
+
+默认访问级别为 `write`，沿用应用审批设置；只读工具可以显式标记 `access_level="readonly"`。实际读取或写入业务时，还需声明相应 SDK 能力。
+
+工具是否进入某个 Agent 的上下文，由 Agent 定义决定。默认由 Build 显式加入，Plan 和子 Agent 不会无条件获得所有 Plugin 工具。可通过 Agent 定义的 `metadata.plugin_tools` 指定完整工具名，空列表表示关闭。
+
+需要保留 revision、审批和回滚的写入，应使用 `context.agent.call_tool`，参见[业务数据](/plugin-sdk/data)。普通资源 CRUD 不自动归入当前 Agent revision。
+
+## 处理提示词与执行事件
+
+中间件需要 `agent.hooks`。下面通过 `prompt.compose` 增加一个系统片段：
+
+```python
+async def compose(context, event, next):
+    sections = [
+        *event["sections"],
+        {
+            "id": "character-consistency",
+            "text": "保持人物的动机、称呼和已知经历一致。",
+            "scope": "system",
+        },
+    ]
+    return await next({**event, "sections": sections})
+
+
+def register(host):
+    host.register_hook("prompt.compose", compose, priority=10)
+```
+
+中间件按 priority、插件 ID 和注册顺序运行。`next` 最多调用一次；handler 可以观察、改写、拒绝或返回结果，具体可修改内容由事件接入点决定。
+
+常见事件包括：
+
+| 阶段 | 事件 |
+| --- | --- |
+| 会话与回合 | `session.start`、`session.end`、`turn.start`、`turn.step`、`turn.complete` |
+| 提示与上下文 | `prompt.submit`、`context.build`、`prompt.compose`、`prompt.section`、`prompt.context` |
+| 工具与子 Agent | `tool.describe`、`tool.call`、`tool.result`、`agent.spawn` |
+| 数据与编辑器 | `data.changed`、`editor.change` |
+
+事件名称可从目录查询；各事件载荷应结合当前分支实现与[示例插件](/plugin-sdk/examples)使用，不能将一种事件的字段用于所有事件。
+
+普通 handler 上限 30 秒。改写已审批的工具参数时会重新校验与授权；由 handler 自身的 SDK 调用引起的重入会跳过自身，以避免死锁。
+
+`turn.step` 可返回已配置的模型记录 ID 作为 `model` 进行路由。历史和编辑器等部分接入点只有观察或消息桥能力，不能通过任意返回值替换整个主应用行为。
+
+## 观察已提交用量
+
+`usage.recorded` 在费用提交后通知，`turn.settled` 在成功回合完成持久化后通知。两者需要 `agent.hooks`：
+
+```python
+async def observe_usage(context, event, next):
+    context.log(
+        f"event={event['event_id']} cost={event['cost']} USD"
+    )
+    return await next(event)
+
+
+def register(host):
+    host.register_hook("usage.recorded", observe_usage)
+```
+
+这些观察者的返回值不能修改已提交费用或结果。每个观察者获得独立载荷与数据库 session，上限 3 秒；异常仅写入日志。
+
+`usage.recorded` 包含 `event_id`、会话/任务/项目/revision ID、费用、输入/输出/缓存 token 和 `currency: "USD"`。缓存 token 属于输入子集，统计总量时不要重复累加。费用根据宿主模型价格计算，不等同于服务商实际账单。
+
+子 Agent 通知包含 `parent_session_id` 与 `is_subagent`，父事件不会重复包含子 Agent 费用。部分通知的 `model_id` 可能为空。
+
+`turn.settled` 当前只发送 `status: "completed"`，失败或取消不会发送。按 session 和 revision 聚合，避免将中断回合的费用计入下一次成功回合。
+
+<Note>
+这些通知按运行流程尽力送达，没有持久化队列或停用期间的历史回放。`turn.complete` 发生得更早，不能作为费用已结算的信号；`hooks.preview` 也不能伪造提交后通知。
+</Note>
+
+## 调用模型与会话
+
+`context.models.create(model_id)` 与 `complete(messages, model_id)` 复用已配置模型，需要 `agent.models`。`model_id` 是 OpenFic 的模型记录 ID，不是服务商模型名称。
+
+```python
+async def summarize(context, params):
+    return await context.models.complete(
+        [{"role": "user", "content": "概括以下内容：\n" + params["text"]}],
+        params["modelId"],
+    )
+```
+
+`context.agent.start/send/cancel` 控制 Agent 会话，需要 `agent.invoke` 和相应 `sessions.read/write`。前端提供对应的 `OpenFic.agent` 方法。恢复、审批、分叉、回滚等更完整的操作请使用业务目录中的接口。
+
+## 提供自定义 Graph
+
+使用 `host.register_graph(name, factory)` 注册，清单需要 `agent.graph`。factory 签名为 `factory(context, model)`，应返回编译后的 LangGraph StateGraph 或异步 Runnable。
+
+Graph 必须接收 `messages`，并接受宿主传入的运行配置。需要复用上下文时使用 `context.agent.context_messages(messages)`，并声明 `agent.hooks`；需要保持模型流式事件与重试时使用 `context.models.invoke(model, messages)`，并声明 `agent.models`。
+
+在插件 UI 中调用 `OpenFic.workflow.select(projectId, providerName)`，或 Python 的 `context.call("workflow.select", {"projectId": project_id, "provider": name})`，为项目选择当前插件的提供者。传入 `null` 恢复内置执行器。
+
+选择在后续回合生效，每个项目只有一个有效选择；停用提供者时回退内置执行器。已开始的 Graph 不会因移除 UI 入口而被强制终止，需要使用会话取消接口。
+
+如果 Graph 包含工具调用，应通过 LangChain Tool 的真实调用事件记录结果。只向 state 追加 ToolMessage 可能使应用会话中缺少工具结果。完整实现请参考[Handoff 示例](/plugin-sdk/examples)。

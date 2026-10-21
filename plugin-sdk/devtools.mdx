@@ -1,0 +1,112 @@
+---
+title: "开发与调试"
+description: "使用离线检查、热重载、插槽预览和 Inspector 调试插件。"
+---
+
+Devtools 将源码检查、开发服务和宿主诊断放在同一条开发流程中。建议先在独立数据环境调试，再检查和打包。
+
+以下命令适用于包含该分支实现的 OpenFic。仓库开发时，可在 `backend/` 中将 `openfic` 替换为 `uv run python -m app.cli`。
+
+## 检查源码与安装包
+
+```bash
+openfic plugin check ./my-plugin
+openfic plugin check ./my-plugin --run-checks --strict --json
+openfic plugin check ./my-plugin.zip --json
+```
+
+默认检查不导入或执行 Plugin Python，不创建数据库或密钥，也不安装依赖。它会启动 Devtools 自带的 Node CSS 检查器。
+
+`--run-checks` 才会运行插件项目自己的脚本以及已安装的 Ruff，因此应只对可信源码使用。
+
+| 检查范围 | 覆盖内容 |
+| --- | --- |
+| 包格式 | 清单、API、版本、能力、插槽、入口、路径及包大小 |
+| Python | AST 语法；可选运行 Ruff |
+| 声明式 UI | 可识别的组件、Props、权限、静态命令与 action 分支 |
+| CSS | 与宿主相同的 PostCSS 编译和过滤诊断 |
+| 网络和资源 | 字面量域名声明、HTML 相对资源及 SDK 路径 |
+| 前端源码 | package.json 中的 lint、type-check 或 typecheck 脚本 |
+
+`--strict` 将警告和未执行检查都视为失败，适合与 `--run-checks` 一起用于打包和 CI。请先在原项目中安装、配置所需工具与脚本；工具不会自动安装依赖。
+
+ZIP 检查不能替代源码 lint，也不能证明动态业务逻辑正确。
+
+## 提供 UI fixture
+
+动态渲染状态可通过 `plugin.dev.json` 指定真实 render 文档：
+
+```json
+{
+  "fixtures": [
+    {"view": "overview", "file": "ui/overview.json"}
+  ]
+}
+```
+
+fixture 使用实际组件校验器检查复合结构、权限和预算。也可通过 `--ui ./document.json` 添加文档。
+
+静态检查不会求值任意 Python 表达式。请为主要状态提供 fixture，并通过预览验证；fixture 本身不保证运行函数一定产生相同结果。
+
+## 启动开发服务
+
+```bash
+openfic plugin dev ./my-plugin --port 8011
+```
+
+打开 CLI 输出的 `/extensions/devtools`。服务固定绑定 127.0.0.1，默认数据位于源码的 `.openfic-dev/`，包含开发数据库、配置和插件存储。
+
+自定义 `--data-dir` 必须指向空目录，或已绑定本源码的开发目录。源码内的数据目录必须位于 `.openfic-dev/` 下，不能直接使用现有应用数据。
+
+Plugin 仍在后端进程内运行，独立开发数据不等于 Python 执行沙箱。
+
+### 配合前端开发
+
+```bash
+# 使用单独的主应用前端开发服务。
+openfic plugin dev ./my-plugin --port 8011 --frontend-url http://127.0.0.1:9000
+
+# 运行插件 frontend/package.json 中已有的持续构建脚本。
+openfic plugin dev ./my-plugin --frontend-script build:watch
+```
+
+单独运行主应用 Vite 时，将其 `VITE_BACKEND_URL` 指向开发后端。iframe 源码也必须由插件自己的构建流程产出清单所指向的 entry。
+
+监听器追踪 Python、清单、静态资源与构建产物，忽略 node_modules、缓存、Git、ZIP 和开发数据。预检或激活失败时保留旧版本；修复后自动重试。修改 Plugin ID 后需要重启开发会话。
+
+默认热重载不反复执行 lint/type-check，请在另一个终端运行自己的检查，打包前再执行严格检查。
+
+## 预览实际插槽
+
+预览支持实际视图与插槽、960/768/390px 视口、浅深主题、语言及 JSON 上下文。
+
+项目和章节 ID 必须来自开发数据库；填写 JSON 不会自动创建实体。预览也不会伪造编辑器，没有真实编辑器时，编辑器 SDK 会返回权限或上下文错误。
+
+原生视图的开发预览由同源宿主 iframe 承载真实渲染器，以正确处理视口、Portal 和 fixed 定位。生产声明式视图仍由宿主原生渲染。
+
+## 使用 Inspector
+
+`plugin dev` 自动开启采集。调试普通实例的已安装 Plugin 时，需要显式启动：
+
+```bash
+openfic serve --plugin-devtools
+```
+
+然后从**插件管理**进入开发工具。普通启动默认不采集，Plugin 不能通过 SDK 自行开启或读取 Inspector。
+
+Inspector 可查看组件树、Props、上下文、原始与编译后 CSS，以及 render/action、UI effect、iframe RPC、SDK、hook 和提交后事件的结果、错误与耗时。
+
+它只追踪公开 SDK 入口，无法自动追踪任意 Python 调用。每个后端保留最近 200 条诊断，单条约 64 KiB；拥塞时可能丢弃，退出服务后历史消失。
+
+已知 secret、Bearer、敏感字段与资源 ticket 会脱敏。自定义业务返回值仍可能包含正文或其他敏感内容，导出诊断前请检查。它适合排查调用过程，不能作为持久审计系统。
+
+## 诊断常见问题
+
+| 现象 | 优先检查 |
+| --- | --- |
+| 启用失败 | 清单能力与注册项是否对应，render/action 是否已注册 |
+| SDK 返回权限错误 | 是否声明读写能力、network_hosts 和组件所需权限 |
+| 严格检查失败 | warning、not-run、Ruff 与前端脚本是否已配置并实际执行 |
+| 修改前端后没有变化 | 构建是否产出 entry 指向的静态资源 |
+| 编辑器操作失败 | 是否打开真实编辑器、是否锁定、笔记是否支持该操作 |
+| 视图资源过期 | 重新打开视图以申请新票据 |
