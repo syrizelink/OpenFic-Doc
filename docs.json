@@ -76,7 +76,9 @@
           {
             "group": "开发与分发",
             "pages": [
-              "plugin-sdk/devtools"
+              "plugin-sdk/devtools",
+              "plugin-sdk/packaging",
+              "plugin-sdk/examples"
             ]
           }
         ]
