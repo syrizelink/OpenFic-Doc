@@ -35,6 +35,34 @@
               "getting_started/model",
               "getting_started/first_step"
             ]
+          },
+          {
+            "group": "功能",
+            "pages": [
+              "feature/skill",
+              "feature/agent"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Plugin SDK",
+        "groups": [
+          {
+            "group": "开始使用",
+            "pages": []
+          },
+          {
+            "group": "核心概念",
+            "pages": []
+          },
+          {
+            "group": "功能开发",
+            "pages": []
+          },
+          {
+            "group": "开发与分发",
+            "pages": []
           }
         ]
       }
