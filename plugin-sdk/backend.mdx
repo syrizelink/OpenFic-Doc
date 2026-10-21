@@ -1,0 +1,80 @@
+---
+title: "后端与生命周期"
+description: "注册命令，使用请求上下文，并在停用时清理资源。"
+---
+
+Python 后端负责 Plugin 的业务逻辑。你需要导出 `register(host)`，将命令和其他扩展注册到宿主。
+
+## 注册命令
+
+```python
+from app.plugins import PluginContext
+
+
+async def list_projects(context: PluginContext, params: dict):
+    return await context.data.list_projects()
+
+
+def register(host):
+    host.register_command("projects.list", list_projects)
+```
+
+该示例需要 `projects.read` 能力。iframe 通过 `OpenFic.call("projects.list", {})` 调用它；声明式视图则通过清单绑定 render/action 命令。
+
+命令位于本插件命名空间内，不能覆盖其他插件或内置接口。名称以小写字母开头，可包含小写字母、数字、下划线、点和连字符，最长 80 字符。
+
+`register` 可以是同步或异步函数。命令处理函数接收请求级 `PluginContext` 和参数字典，返回可 JSON 序列化的结果。
+
+## 使用上下文
+
+| 字段或接口 | 用途 |
+| --- | --- |
+| `plugin_id` | 宿主绑定的插件 ID |
+| `settings` | 当前命令执行时的配置快照 |
+| `runtime` | Agent 等执行流程传入的上下文 |
+| `data` | 兼容的只读项目元数据接口 |
+| `api` / `resource(name)` | 业务请求与常见 CRUD |
+| `storage` / `secrets` / `files` | 插件数据、密钥与文本文件 |
+| `assets` / `http` / `oauth` | 包资源与外部服务 |
+| `agent` / `models` | Agent 与模型扩展 |
+
+这些数据接口返回 JSON DTO。请使用公共 SDK 处理业务，不要直接依赖宿主 ORM 或内部模块。
+
+声明式视图的项目、章节、语言和主题信息位于 `params["context"]`；Agent 工具运行时的项目、会话信息则位于 `context.runtime`。从全局入口打开时可能没有项目，请显式处理缺失上下文。
+
+## 记录日志与刷新界面
+
+```python
+async def refresh(context: PluginContext, params: dict):
+    context.log("开始刷新")
+    await context.storage.set("message", "已刷新")
+    context.invalidate_ui()
+    return {"ok": True}
+```
+
+本例需要 `storage` 与 `ui`。`invalidate_ui()` 通知宿主重新获取原生视图；自定义事件使用 `context.emit(name, data)`，另需 `events` 能力，事件会限定在当前插件命名空间内。
+
+日志可在**插件管理**中查看，宿主保留最近 200 条生命周期与错误日志。更细的调用链请使用 [Inspector](/plugin-sdk/devtools)。
+
+## 清理资源
+
+```python
+def register(host):
+    async def cleanup():
+        # 关闭由本插件创建的连接或其他资源。
+        pass
+
+    host.on_dispose(cleanup)
+```
+
+停用、更新、卸载和激活失败时会执行已注册的清理回调。后端也支持可选的 `deactivate()` 导出。
+
+需要周期任务时，使用 `host.register_interval(seconds, handler)` 并声明 `timers`。间隔范围为 5 秒至 24 小时，handler 接收 `context, params`。宿主为每次执行创建数据库 session，并在停用、更新或卸载时取消任务、等待清理。
+
+## 调用限制
+
+普通命令参数最大 64 KB，SDK 方法参数和 JSON 结果最大 4 MiB。异步命令最长 120 秒，启停和更新会等待正在执行的命令完成。
+
+<Warning>
+异步超时不能强制终止同步阻塞的 Python 代码。耗时 I/O 应使用异步接口，并为外部请求设置合理的超时。
+</Warning>

@@ -1,0 +1,99 @@
+---
+title: "插件清单"
+description: "定义插件身份、能力、视图入口与用户配置。"
+---
+
+`plugin.json` 是 Plugin 的入口。宿主通过它识别插件身份、验证能力，并决定何时、在哪里显示视图。
+
+## 基本结构
+
+```json
+{
+  "id": "writing-helper",
+  "name": "写作助手",
+  "version": "1.0.0",
+  "api_version": 1,
+  "description": "为编辑器添加写作辅助工具。",
+  "author": "你的名字",
+  "backend": "backend/main.py",
+  "capabilities": ["ui", "editor.read", "editor.write", "storage"],
+  "views": [
+    {
+      "id": "helper",
+      "title": "写作助手",
+      "slot": "editor.toolbar",
+      "icon": "PenLine",
+      "presentation": "popover",
+      "renderer": "declarative",
+      "render": "helper.render",
+      "action": "helper.action"
+    }
+  ],
+  "settings": [
+    {
+      "key": "targetWords",
+      "label": "目标字数",
+      "type": "integer",
+      "default": 2000,
+      "minimum": 1
+    }
+  ]
+}
+```
+
+`id` 使用小写字母开头，可包含小写字母、数字和连字符，最长 64 字符。`version` 使用三段数字，如 `1.0.0`；更新时必须严格递增。`api_version` 当前固定为 `1`。
+
+`backend` 可以省略，用于纯 UI Plugin；`views` 可以为空，用于纯后端 Plugin。后端必须指向包内 Python 文件，路径不能是绝对路径或包含越界片段。宿主会拒绝未知清单字段。
+
+## 声明能力
+
+| 能力 | 用途 |
+| --- | --- |
+| `<resource>.read` / `<resource>.write` | 对应业务资源的读取和写入 |
+| `project.entities.read` | 读取项目实体元数据，不包含正文 |
+| `ui` / `ui.overlay` | 界面与宿主操作 / 全局声明式浮层 |
+| `editor.read` / `editor.write` | 读取 / 修改当前编辑器 |
+| `storage` / `secrets` / `files` | 插件 KV / 加密密钥 / 文本文件 |
+| `network` | 通过 SDK 请求已声明的网络域名 |
+| `events` | 插件事件 |
+| `agent.tools` / `agent.hooks` / `agent.graph` | 工具 / 中间件 / 自定义 Graph |
+| `agent.models` / `agent.invoke` | 调用模型 / 控制 Agent 会话 |
+| `timers` | 注册定时任务 |
+
+资源名称包括 `projects`、`chapters`、`volumes`、`notes`、`characters`、`relationships`、`worldbooks`、`rules`、`skills`、`agents`、`sessions`、`tasks`、`summaries`、`retrieval`、`revisions`、`models`、`settings`、`exports`、`imports`、`background`、`providers`、`prompts`、`memories`、`dashboard`、`audit` 和 `tunnels`。
+
+请只声明实际使用的能力。写能力不隐含读能力；例如同时读取和保存章节，需要分别声明 `chapters.read` 与 `chapters.write`。
+
+网络访问还需设置 `network_hosts`，具体格式参见[存储与外部服务](/plugin-sdk/services)。
+
+## 选择视图入口
+
+| 插槽 | 呈现方式 |
+| --- | --- |
+| `sidebar.extensions` | 全局侧栏入口，打开独立页面 |
+| `project.toolbar` | 项目列表与项目写作侧栏入口 |
+| `editor.toolbar` | 编辑器工具栏按钮，打开浮层或对话框 |
+| `assistant.toolbar` | Agent 输入区域入口 |
+| `assistant.above-prompt` | Agent 输入框上方常驻区域 |
+| `statusbar` | 状态栏入口，展开浮动视图 |
+| `settings.plugins` | 设置内的插件区域 |
+| `dashboard` | 仪表盘常驻区域 |
+| `app.overlay` | 全局声明式浮层，需额外声明 `ui.overlay` |
+
+旧插槽 `editor.context` 和 `editor.panel` 分别映射为工具栏按钮加浮层、工具栏按钮加对话框。新 Plugin 建议使用 `editor.toolbar`。
+
+`presentation` 仅适用于编辑器插槽，可设为 `popover` 或 `dialog`。`icon` 使用宿主支持的 Lucide 名称，例如 `CloudUpload`；具体名称可查询目录中的 `ui.lucideIcons`。
+
+### 绑定渲染方式
+
+声明式视图使用 `renderer: "declarative"`，必须同时声明 `render`、`action` 与 `ui` 能力，不能包含 `entry`。这两个命令必须由本插件注册，不能绑定 SDK 方法。
+
+iframe 视图使用 `renderer: "iframe"`，也可以省略此字段。它必须提供 `frontend/` 下的 HTML `entry`，不能绑定 `render` 或 `action`。
+
+## 添加用户配置
+
+`settings` 支持 `string`、`boolean`、`integer`、`number` 和 `json`。每一项均需提供 `key`、`label`、`type` 与 `default`；数值类型可设置 `minimum` 和 `maximum`。
+
+后端通过 `context.settings["targetWords"]` 读取命令执行时的配置快照，用户保存配置后无需重启。
+
+需要存放敏感值时，将设置标记为 `secret: true`。宿主加密保存，并从管理响应与 iframe 上下文中隐藏实际值；保存空输入会保留已有值。

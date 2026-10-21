@@ -1,0 +1,122 @@
+---
+title: "第一个插件"
+description: "用 Python 和声明式 UI 创建一个可以交互的插件。"
+---
+
+下面通过一个简单的计数器，了解 Plugin 的基本组成。它只需要一个清单和一个 Python 文件，不需要前端构建工具。
+
+## 准备开发环境
+
+请先准备 Python 3.12 或 3.13、uv 和 Node.js。Node.js 用于 Devtools 的 CSS 检查；本例没有需要构建的 JavaScript。
+
+从仓库获取包含 Plugin SDK 的源码，并准备后端环境：
+
+```bash
+git clone --branch feat/extension-host https://github.com/syrizelink/OpenFic.git
+cd OpenFic/backend
+uv sync
+```
+
+以下命令均在 `OpenFic/backend` 目录执行。为了方便使用，命令采用 `uv run python -m app.cli`；安装相应版本后也可以直接使用 `openfic`。
+
+## 创建插件目录
+
+在仓库根目录创建 `my-plugin/`，使其包含以下文件：
+
+```text
+my-plugin/
+├── plugin.json
+└── backend/
+    └── main.py
+```
+
+### 编写清单
+
+将以下内容保存至 `my-plugin/plugin.json`：
+
+```json
+{
+  "id": "first-plugin",
+  "name": "第一个插件",
+  "version": "1.0.0",
+  "api_version": 1,
+  "backend": "backend/main.py",
+  "capabilities": ["ui", "storage"],
+  "views": [
+    {
+      "id": "counter",
+      "title": "计数器",
+      "slot": "sidebar.extensions",
+      "renderer": "declarative",
+      "render": "counter.render",
+      "action": "counter.action"
+    }
+  ]
+}
+```
+
+这里的 `ui` 允许返回声明式界面，`storage` 用于保存计数。视图绑定两个后端命令：`render` 生成界面，`action` 处理点击。
+
+### 编写后端
+
+将以下内容保存至 `my-plugin/backend/main.py`：
+
+```python
+from app.plugins import PluginContext
+
+
+async def render(context: PluginContext, params: dict):
+    count = await context.storage.get("count", 0)
+    return {
+        "tree": {
+            "type": "Flex",
+            "props": {"direction": "column", "gap": "3"},
+            "children": [
+                {"type": "Text", "children": f"当前计数：{count}"},
+                {
+                    "type": "Button",
+                    "props": {"onPress": "increment"},
+                    "children": "增加一次",
+                },
+            ],
+        }
+    }
+
+
+async def action(context: PluginContext, params: dict):
+    if params["id"] == "increment":
+        count = await context.storage.get("count", 0)
+        await context.storage.set("count", count + 1)
+
+
+def register(host):
+    host.register_command("counter.render", render)
+    host.register_command("counter.action", action)
+```
+
+宿主在启用时调用 `register(host)`。点击按钮后，`onPress` 中的字符串作为 action ID 传给后端；事件完成后，宿主重新获取组件树。
+
+## 启动开发服务
+
+```bash
+uv run python -m app.cli plugin check ../my-plugin
+uv run python -m app.cli plugin dev ../my-plugin --port 8011
+```
+
+打开 CLI 输出的 `/extensions/devtools` 地址，选择计数器视图。点击**增加一次**，计数应逐次增加；刷新后，已保存的计数仍然保留。
+
+开发服务默认使用 `my-plugin/.openfic-dev/` 保存独立数据。修改 Python 或清单后，宿主会预检并重新加载。若修改有误，旧版本继续可用，错误会显示在开发页。
+
+<Note>
+离线检查会标明未执行的检查。打包前再按[开发与调试](/plugin-sdk/devtools)配置源码检查，并运行严格检查；基础检查通过不代表所有业务分支均已验证。
+</Note>
+
+## 打包并安装
+
+```bash
+uv run python -m app.cli plugin pack ../my-plugin --output ../first-plugin.zip
+```
+
+在目标实例中打开**插件管理**，确认来源后选择 ZIP。安装后默认停用，点击**启用**，即可在侧栏扩展区域找到**计数器**。
+
+你已经完成了从清单、后端命令到界面事件的基本流程。接下来可以了解[插件清单](/plugin-sdk/manifest)，或在[声明式 UI](/plugin-sdk/declarative-ui)中加入表单与宿主操作。

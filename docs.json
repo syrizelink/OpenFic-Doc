@@ -50,11 +50,17 @@
         "groups": [
           {
             "group": "开始使用",
-            "pages": []
+            "pages": [
+              "plugin-sdk/overview",
+              "plugin-sdk/quickstart"
+            ]
           },
           {
             "group": "核心概念",
-            "pages": []
+            "pages": [
+              "plugin-sdk/manifest",
+              "plugin-sdk/backend"
+            ]
           },
           {
             "group": "功能开发",
