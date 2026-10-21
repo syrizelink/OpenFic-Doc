@@ -12,32 +12,75 @@
     "dark": "/images/dark.svg"
   },
   "navigation": {
-    "pages": [
-      "index",
+    "tabs": [
       {
-        "group": "安装",
+        "tab": "使用指南",
         "pages": [
-          "installation/docker",
-          "installation/python",
-          "installation/desktop",
-          "postgre-sql"
-        ],
-        "expanded": true
-      },
-      {
-        "group": "快速入门",
-        "expanded": true,
-        "pages": [
-          "getting_started/provider",
-          "getting_started/model",
-          "getting_started/first_step"
+          "index",
+          {
+            "group": "安装",
+            "expanded": true,
+            "pages": [
+              "installation/docker",
+              "installation/python",
+              "installation/desktop",
+              "postgre-sql"
+            ]
+          },
+          {
+            "group": "快速入门",
+            "expanded": true,
+            "pages": [
+              "getting_started/provider",
+              "getting_started/model",
+              "getting_started/first_step"
+            ]
+          },
+          {
+            "group": "功能",
+            "pages": [
+              "feature/skill",
+              "feature/agent"
+            ]
+          }
         ]
       },
       {
-        "group": "功能",
-        "pages": [
-          "feature/skill",
-          "feature/agent"
+        "tab": "Plugin SDK",
+        "groups": [
+          {
+            "group": "开始使用",
+            "pages": [
+              "plugin-sdk/overview",
+              "plugin-sdk/quickstart"
+            ]
+          },
+          {
+            "group": "核心概念",
+            "pages": [
+              "plugin-sdk/manifest",
+              "plugin-sdk/backend"
+            ]
+          },
+          {
+            "group": "功能开发",
+            "pages": [
+              "plugin-sdk/data",
+              "plugin-sdk/declarative-ui",
+              "plugin-sdk/iframe",
+              "plugin-sdk/editor",
+              "plugin-sdk/services",
+              "plugin-sdk/agents"
+            ]
+          },
+          {
+            "group": "开发与分发",
+            "pages": [
+              "plugin-sdk/devtools",
+              "plugin-sdk/packaging",
+              "plugin-sdk/examples"
+            ]
+          }
         ]
       }
     ]

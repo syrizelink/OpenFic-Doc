@@ -1,0 +1,141 @@
+---
+title: "声明式 UI"
+description: "通过组件树、action 与 effects 构建原生插件界面。"
+---
+
+声明式 UI 由 Python 返回可序列化的组件树，宿主负责渲染和事件分发。你可以复用 OpenFic 的主题、表单与弹层，而无需编写浏览器 JavaScript。
+
+请先在清单中声明 `ui`，设置 `renderer: "declarative"` 并绑定 `render` 和 `action`。完整结构参见[第一个插件](/plugin-sdk/quickstart)。
+
+## 返回组件树
+
+render 命令接收 `{viewId, slot, columns, context}`，返回包含 `tree` 的文档：
+
+```python
+async def render(context, params):
+    return {
+        "tree": {
+            "type": "Flex",
+            "props": {"direction": "column", "gap": "3"},
+            "children": [
+                {"type": "Heading", "children": "创作面板"},
+                {
+                    "type": "Button",
+                    "props": {"onPress": "refresh"},
+                    "children": "刷新",
+                },
+            ],
+        }
+    }
+```
+
+节点使用 `type` 指定组件，`props` 提供属性，`children` 可以是文字、单个节点或节点列表。
+
+## 处理交互
+
+回调属性填写后端识别的 action ID。上例点击后，action 命令会收到类似参数：
+
+```json
+{
+  "id": "refresh",
+  "event": "press",
+  "value": null,
+  "viewId": "overview",
+  "slot": "sidebar.extensions",
+  "context": {}
+}
+```
+
+这里的 `viewId`、`slot` 与 `context` 由当前视图决定；实际参数还包含 `columns`。
+
+```python
+async def action(context, params):
+    if params["id"] == "refresh":
+        await context.storage.set("message", "已刷新")
+```
+
+该 handler 另需 `storage`。事件完成后宿主重新获取组件树；后台状态变化可调用 `context.invalidate_ui()` 主动刷新。
+
+| 交互属性 | value |
+| --- | --- |
+| `onPress` / `onClick` | `null` |
+| 输入框的 `onInput` / `onChange` | 输入字符串 |
+| 选择器的 `onValueChange` / `onSelect` | 选项值或值数组 |
+| Checkbox / Switch 的 `onCheckedChange` | 布尔值，部分控件支持 indeterminate |
+| Slider 的 `onValueChange` / `onValueCommit` | 数字数组 |
+| 弹层的 `onOpenChange` | 布尔值 |
+
+不能传入 React 函数、DOM 节点、ref 或事件代码。不同组件支持的事件以目录为准。
+
+## 使用宿主组件
+
+不带前缀的组件名优先匹配项目组件，再匹配 Radix Themes。例如 `Select` 使用项目选择器，`Spinner` 使用项目 Spinner。
+
+需要明确选择时，可以使用 `Project.Spinner`、`Radix.Spinner` 或 `Radix.Select.Root`。复合组件需遵循原有结构，例如 `Dialog.Root` 中放置 Trigger 和 Content，并为 Content 提供 Title 与 Description。
+
+常用项目组件包括：
+
+- `ModelSelector`：选择已配置的模型，需要 `models.read`。
+- `ProjectSelector`、`ProjectGridSelector`：选择项目，需要 `projects.read`。
+- `Icon`：通过 Lucide 名称显示图标。
+- `Image`：显示本插件 `frontend/` 下的图片，需要 `ui`。
+- `FloatingPanel`：显示可拖动的全局浮层，需要 `ui.overlay`。
+
+准确名称、Props、响应式属性和权限可查询 `catalogue.ui`。TypeScript 提供 `UINode`、`UIPropsFor<C>` 与 `UIComponentPropsMap` 类型，帮助验证组件属性。
+
+## 操作编辑器与浏览器
+
+action 可以返回 `effects`，让宿主按顺序执行公开 SDK 操作：
+
+```python
+async def action(context, params):
+    if params["id"] == "insert":
+        return {
+            "effects": [
+                {
+                    "method": "editor.insert",
+                    "params": {"text": "新的段落"},
+                    "discardResult": True,
+                },
+                {"method": "editor.save"},
+            ],
+            "next": "saved",
+        }
+    if params["id"] == "saved":
+        await context.storage.set("message", "已插入并保存")
+```
+
+该示例需要 `editor.write` 和 `storage`，同时保留视图所需的 `ui`。按钮应绑定 `onPress: "insert"`。
+
+只有用户 action 的响应会执行 effects。失败时宿主停止后续操作与回调；`next` 仍回到当前视图绑定的 action，结果数组位于 `params["value"]`。
+
+`ui.confirm` 返回布尔值。需要先在 `next` 中判断用户选择，再返回写入操作，不能把确认与写入直接放进同一批。
+
+每批最多 16 个 effect，连续最多 4 批。对不需要返回值的写操作设置 `discardResult: True`，避免把完整正文带入事件回调。
+
+## 设置样式
+
+文档顶层可返回 `css`，组件通过 `className` 或 `style` 使用：
+
+```python
+return {
+    "css": ".panel { padding: 16px; border: 1px solid var(--accent-7); }",
+    "tree": {
+        "type": "Card",
+        "props": {"className": "panel"},
+        "children": "创作进度",
+    },
+}
+```
+
+宿主使用 PostCSS 编译嵌套、限制选择器范围并重命名动画，规则只作用于当前视图及其 Portal。需要弹层共享的 CSS 变量可定义在 `:scope`。
+
+支持媒体查询、容器查询和 keyframes；`@import`、`@font-face` 等未支持规则会被过滤。CSS 最大 64 KiB，组件树最大 4096 个节点、32 层深度，文档最大 1 MiB。
+
+## 添加全局浮层
+
+全局挂件使用 `app.overlay`，必须同时声明 `ui` 与 `ui.overlay`，并使用声明式视图。
+
+`FloatingPanel` 可通过 `position: {x, y}` 指定位置，通过 `onPositionChange` 接收拖动结束后的坐标。位置的持久化由插件自己处理。
+
+图片使用 `Image.asset`，例如 `assets/mascot.png` 对应包内 `frontend/assets/mascot.png`。支持 PNG、JPEG、WebP、GIF 和 AVIF；不接受 SVG、任意 URL 或 HTML。完整示例见[示例插件](/plugin-sdk/examples)。

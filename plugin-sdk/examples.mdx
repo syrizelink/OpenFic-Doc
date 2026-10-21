@@ -1,0 +1,62 @@
+---
+title: "示例插件"
+description: "按功能查找可安装的完整示例与开发参考。"
+---
+
+仓库的 `examples/plugins/` 提供完整源码，`examples/plugins/dist/` 提供已打包的示例。请在包含相应 SDK 能力的宿主中使用。
+
+你可以先安装示例了解交互，再对照源码学习清单、后端命令与能力声明。
+
+## 按目标选择示例
+
+| 示例 | 适合参考的内容 |
+| --- | --- |
+| [project-statistics](https://github.com/syrizelink/OpenFic/tree/feat/extension-host/examples/plugins/project-statistics) | 只读项目数据、字数统计、用户设置、响应式卡片与表格 |
+| [google-drive-sync](https://github.com/syrizelink/OpenFic/tree/feat/extension-host/examples/plugins/google-drive-sync) | OAuth、密钥、HTTP、同步映射、冲突处理与编辑器入口 |
+| [handoff-workflow](https://github.com/syrizelink/OpenFic/tree/feat/extension-host/examples/plugins/handoff-workflow) | 自定义 LangGraph、模型选择、工具事件与项目工作流切换 |
+| [prompt-elements](https://github.com/syrizelink/OpenFic/tree/feat/extension-host/examples/plugins/prompt-elements) | 动态上下文、提示词规则、输入框面板与编辑器操作 |
+| [declarative-showcase](https://github.com/syrizelink/OpenFic/tree/feat/extension-host/examples/plugins/declarative-showcase) | 项目组件、Radix 复合组件、选择器、Portal、CSS 与响应式布局 |
+| [deepseek-whale](https://github.com/syrizelink/OpenFic/tree/feat/extension-host/examples/plugins/deepseek-whale) | 全局可拖动浮层、包内图片、余额与 Agent 用量观察 |
+| [devtools-demo](https://github.com/syrizelink/OpenFic/tree/feat/extension-host/examples/plugins/devtools-demo) | 原生与 iframe 混合视图、fixture、源码检查和 Inspector |
+
+## 从项目统计开始
+
+项目统计使用已经保存的章节字数，展示项目、卷、角色、笔记和世界书统计。它不读取浏览器未保存的正文，适合先了解数据读取与声明式 UI。
+
+示例安装包为 `project-statistics-1.1.0.zip`。你可以修改目标字数、显示卷统计等配置，观察设置如何进入 `context.settings` 并影响界面。
+
+## 接入 Google Drive
+
+Google Drive 示例使用 `drive.file` scope，并将 OAuth 令牌保存在插件密钥中。使用前，需要你自己的 Google OAuth 客户端及正确的后端回调地址。
+
+它通过项目与章节 ID 关联远端内容，支持预览、分页、刷新令牌与冲突解决。两端均有修改时，不会自动覆盖。
+
+示例不传播删除，也不备份整个应用数据库。Agent 工具限定为上传已保存章节；双向下载和冲突处理在 Plugin 页面由用户执行。
+
+自动化测试中的 Drive 与 OAuth 使用协议仿真，不能据此认为真实账户已完成授权。
+
+## 理解 Handoff
+
+Handoff 提供 planner、writer 和 reviewer 之间的交接。演示模式不调用模型；实际运行模式由模型请求交接，LangGraph 使用 `Command(goto=...)` 切换节点，并限制交接次数。
+
+该示例展示如何为项目选择自定义 Graph、恢复内置执行器，以及通过真实 Tool 调用事件配对记录工具结果。内部交接工具只控制流程，不修改业务数据。
+
+## 调整提示词
+
+动态提示词示例通过 `context.build` 处理当前模型请求，支持开关元素、临时注入、替换、移除和系统片段控制，不会覆写数据库历史。
+
+可以先使用**预览注入结果**观察命中规则，再比较实际会话效果。涉及模型角色顺序时，仍需考虑提供商的约束。
+
+## 构建与验证
+
+修改示例后，建议使用统一 CLI：
+
+```bash
+# 在仓库 backend/ 目录执行。
+uv run python -m app.cli plugin check ../examples/plugins/project-statistics
+uv run python -m app.cli plugin dev ../examples/plugins/project-statistics --port 8011
+```
+
+打包前补齐源码检查并使用严格模式。更多用法见[开发与调试](/plugin-sdk/devtools)和[打包与分发](/plugin-sdk/packaging)。
+
+需要查看该分支更详细的设计与回归记录，可参阅[仓库开发文档](https://github.com/syrizelink/OpenFic/tree/feat/extension-host/docs/develop)。这些记录描述对应验证范围，不代表已运行原生桌面安装程序或真实第三方账户测试。

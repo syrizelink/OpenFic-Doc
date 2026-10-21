@@ -1,0 +1,106 @@
+---
+title: "业务数据"
+description: "通过资源接口和业务网关读取、修改 OpenFic 数据。"
+---
+
+Plugin 通过业务 SDK 操作项目、章节、笔记、角色及其他资源。它复用现有业务接口，因此字段校验、编辑锁、计数和保存副作用仍由宿主处理。
+
+## 读取项目元数据
+
+只需要统计时，可以使用精简的只读接口，避免获取正文：
+
+```python
+async def statistics(context, params):
+    entities = await context.data.project_entities(params["projectId"])
+    return {
+        "title": entities["project"]["title"],
+        "chapters": len(entities["chapters"]),
+        "words": sum(item["word_count"] for item in entities["chapters"]),
+    }
+```
+
+该命令需要 `project.entities.read`。返回内容包括项目、章节、卷、角色、笔记和世界书条目的元数据，不包含正文。字数来自已经保存的章节，不包含浏览器中尚未保存的工作副本。
+
+`context.data.list_projects()` 则返回项目 ID 与标题列表，需要 `projects.read`。
+
+## 使用资源接口
+
+常见 CRUD 可以通过 `context.resource(name)` 访问。Python 为 `projects`、`chapters` 和 `notes` 提供直接属性：
+
+```python
+async def create_note(context, params):
+    note = await context.notes.create(
+        {"title": "创作备忘", "content": params["text"]},
+        params["projectId"],
+    )
+    return note
+```
+
+该操作需要 `notes.write`。读取笔记另需 `notes.read`。
+
+| 方法 | 用途 |
+| --- | --- |
+| `list(project_id=None, **query)` | 读取列表，可传项目 ID 与查询条件 |
+| `get(entity_id)` | 读取单个资源 |
+| `create(values, project_id=None)` | 创建资源 |
+| `update(entity_id, values)` | 修改资源 |
+| `delete(entity_id)` | 删除资源 |
+
+前端使用对应的 JavaScript 接口，例如 `OpenFic.chapters.get(id)` 或 `OpenFic.resource("rules")`。前端列表查询条件以第二个对象参数传入：`resource.list(projectId, query)`。
+
+<Note>
+资源接口是对常见路由的便捷封装，并非每个业务对象都存在全部 CRUD 方法。请先查询目录，确认目标对象实际支持的路径与操作。
+</Note>
+
+## 调用业务网关
+
+复杂操作使用 `context.api.request`。路径不包含 `/api/v1` 前缀：
+
+```python
+async def read_chapter(context, params):
+    return await context.api.request(
+        "GET",
+        f"/chapters/{params['chapterId']}",
+    )
+```
+
+前端对应写法如下，需要 `chapters.read`：
+
+```javascript
+const context = await OpenFic.ready;
+if (!context.chapterId) {
+  throw new Error("请先打开一个章节");
+}
+
+const chapter = await OpenFic.api.request(
+  "GET",
+  `/chapters/${context.chapterId}`,
+);
+```
+
+请求支持 `json`、`query`、`form` 和 `files`。Python 通过关键字参数传入，JavaScript 通过第三个 options 对象传入。
+
+文件项使用 `{ field, name, mime, base64 }`；二进制下载返回 `{ base64, mime, filename }`。具体上传字段与 HTTP 方法以 `catalogue.operations` 和 OpenAPI schema 为准。
+
+SDK 不开放认证管理、宿主插件管理或任意内部 URL。多个独立业务请求也不自动构成事务，需要共同回滚的操作应使用宿主已有的事务接口。
+
+## 区分普通编辑与 Agent 写入
+
+通过资源 CRUD 或业务网关保存数据，具有普通用户编辑的语义，不会自动归入当前 Agent revision。
+
+如果 Plugin 工具需要保留内置审批、变更记录和 Agent 回滚，请在活跃的版本化会话中，通过 Python 调用内置工具：
+
+```python
+async def builtin_tools(context, params):
+    return context.agent.tools()
+
+
+async def apply_with_revision(context, params):
+    # name 和 arguments 应来自 tools() 返回的实际 schema。
+    return await context.agent.call_tool(
+        params["name"],
+        params["arguments"],
+    )
+```
+
+查询和调用内置工具需要 `agent.invoke`，并受目标工具的内置授权与审批约束；将 handler 注册为 Plugin 工具还需 `agent.tools`。工具名称与参数必须从实际 schema 中选择，不能递归调用其他 Plugin 工具。详细说明见 [Agent 扩展](/plugin-sdk/agents)。
