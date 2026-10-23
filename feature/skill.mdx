@@ -2,7 +2,7 @@
 title: "技能"
 ---
 
-<Card title="[什么是技能](https://agentskills.io/home)" type="tip">
+<Card title="什么是技能" href="https://agentskills.io/home">
   技能（下称 Skill）是一种轻量的开放格式，可以通过专业知识和工作流扩展 Agent 的能力。
 
   本质上来说，每个 Skill 都是一个包含`SKILL.md`文件的文件夹，该文件包含元数据（如`name`和`description`）以及告诉 Agent 如何执行特定任务的指令。 对于复杂的 Skill，还可能包含脚本、参考资料、模板和其他资源。
@@ -16,7 +16,11 @@ title: "技能"
 
 OpenFic 内置了许多 Skill，这些 Skill 大多基于 [oh-story-claudecode](https://github.com/zenstory-ai/oh-story-claudecode) 修改适配而来。
 
-考虑到内置的 Skill 往往是针对特定场景而设计的且并不足够通用，也很难组合出某种完美的“最佳实践”，因此这些 Skill 都是默认关闭的，你需要进行一些配置并按需启用。
+内置 Skill 默认处于全局启用状态，但不会自动装载到任何 Agent。它们往往是针对特定场景而设计的，因此你仍然需要了解其内容，并为需要使用的 Agent 按需装载。
+
+<Frame caption="先查看技能内容，再按任务需要为 Agent 装载。">
+  ![技能列表及所选内置技能的名称、简述、内容和参考文档](/images/screenshot/skills-settings.png)
+</Frame>
 
 <Steps>
   <Step title="进入 Skill 面板">
@@ -32,7 +36,7 @@ OpenFic 内置了许多 Skill，这些 Skill 大多基于 [oh-story-claudecode](
     在选用 Skill 时，建议对 Skill 的内容做基本的了解，以免在 Agent 遵照 Skill 完成任务时出现与预期不符的行为。
   </Step>
   <Step title="装载 Skill">
-    在上一步，我们已经启用了所需的 Skill，但是 Agent 仍然无法读取和使用它们，为此，你需要为不同的 Agent 装载 Skill。
+    在上一步，我们已经启用了所需的 Skill。要让 Agent 在相关任务中自主发现并使用它们，你还需要为不同的 Agent 装载 Skill。
 
     于左侧边栏底部打开`设置`面板，此处显示了所有可配置项。
 
@@ -50,13 +54,21 @@ OpenFic 内置了许多 Skill，这些 Skill 大多基于 [oh-story-claudecode](
   </Step>
 </Steps>
 
+## 在消息中引用 Skill
+
+如果只希望在当前任务中使用某个 Skill，可以在会话输入框中输入`/`，搜索并选择所需的技能；也可以从输入框的引用与内容菜单进入`技能`列表。
+
+显式引用允许当前主 Agent 使用该 Skill，即使它没有在智能体设置中预先装载。被引用的 Skill 仍然需要完整且处于全局启用状态。
+
+这种引用不会永久修改 Agent 的技能配置，也不会替所有子 Agent 装载技能。若希望某个 Agent 在后续任务中自主使用它，请继续按上面的方式进行装载。
+
 ## 了解 Skill
 
 内置的 Skill 往往不适合所有人，将自己的工作流内化为 Skill 以便后续复用是更推荐的使用方法。
 
 在此之前，你应该先了解 Skill 组成的基本概念。
 
-与标准的 [Agent Skills](https://agentskills.io/specification) 不同，OpenFic 中所使用的 Skill 是精简格式，这是因为 Agent 无法使用终端，因此脚本对于 Skill 而言是无意义的，对于导入 Skill 包的参考格式如下：
+与标准的 [Agent Skills](https://agentskills.io/specification) 不同，OpenFic 中所使用的 Skill 是精简格式，主要使用 Markdown 指令和参考文档。Agent 没有终端执行能力，导入 Skill 包时也不会运行其中的脚本，参考格式如下：
 
 ```lines
 skill-name/
@@ -91,6 +103,8 @@ skill-name/
 
 这会创建一个与`原 Skill`内容完全一致的`原 Skill - Fork`，以便于你在不影响现有 Skill的前提下修改它们。
 
+内置 Skill 的原始内容不能直接改写。需要调整时，请先复制，再编辑得到的自定义 Skill，并为相应 Agent 更换装载项。
+
 ## 导入 Skill
 
 在 Skill 列表上方，点击`导入技能`按钮，将会打开导入面板，你可以拖入或点击打开文件选择器以上传文件。
@@ -109,6 +123,19 @@ skill-name/
 
 如果该 Markdown 采用了标准的 SKILL.md 格式，那么通常能够正确识别 Frontmatter 部分，并将其转换为不同部分正确导入。
 
+例如，下面是一份可导入的最小 Skill：
+
+```markdown
+---
+name: dialogue-review
+description: 在检查人物对话是否符合角色身份时使用。
+---
+
+先阅读用户指定的章节和相关角色资料，再逐段检查对话。
+列出说话者、原句、存在的问题和修改建议。
+在用户确认前，不要修改正文。
+```
+
 ### .zip 格式
 
 对于压缩包格式，通常应确保其采用了标准 Skill 包格式：
@@ -124,3 +151,4 @@ skill-name/
 其中，references 下的所有 Markdown 文档将会以参考文档的形式被导入。
 
 如果压缩包内包含了任何非 .md 格式的文件，那么它们都不会被识别；因此对于非 .md 格式的文档文件，需要手动创建并写入参考文档中。
+

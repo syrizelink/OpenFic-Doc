@@ -1,0 +1,63 @@
+---
+title: "远程隧道"
+---
+
+<Note>
+  本功能已加入当前仓库，计划随 0.13.0 发布，目前尚未正式发布；在设置中标记为实验性功能。
+</Note>
+
+远程隧道可以为当前 OpenFic 实例创建一个公网 HTTPS 地址。你可以在手机、其他电脑或桌面端中打开它，继续访问同一份作品。
+
+隧道只提供访问通道，数据仍由原有后端实例保存。使用期间，运行 OpenFic 的设备和隧道进程都需要保持在线。
+
+## 准备工作
+
+<Steps>
+  <Step title="启用密码认证">
+    在服务端配置`OPENFIC_AUTH_PASSWORD`，然后重启 OpenFic，参阅[访问认证与数据备份](/installation/configuration)。没有启用密码认证时，隧道无法启动。
+
+    桌面端本地实例可以在实例管理中配置访问密钥。远程访问时，使用相同的密钥登录。
+  </Step>
+  <Step title="安装隧道客户端">
+    根据所选服务，在**运行 OpenFic 后端的设备**上安装 [cloudflared](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/) 或 [ngrok](https://ngrok.com/download)。
+
+    客户端需要能被 OpenFic 进程找到。安装完成后，打开`设置`中的`远程隧道`并点击`刷新检测`。
+
+    如果使用 Docker，客户端也需要在后端容器内可用，仅在主机上安装不会被容器检测到。默认镜像没有包含这些客户端，需要自行准备相应的运行环境。
+  </Step>
+  <Step title="确认前端可用">
+    隧道要求后端能提供 OpenFic 前端页面。通过正常发布的软件包、镜像或桌面本地实例运行时，应使用完整的前端构建；仅启动开发后端而没有前端构建时，界面会提示无法建立隧道。
+  </Step>
+</Steps>
+
+## Cloudflare 快速隧道
+
+在`远程隧道`中选择 Cloudflare，将`连接模式`设为`快速`，然后点击`启动隧道`。
+
+建立连接后，界面会显示一个`trycloudflare.com`地址。你可以复制地址、直接打开，或显示二维码让其他设备扫描。
+
+快速隧道使用随机的一次性地址，重新建立连接后地址可能改变。如果需要长期使用固定域名，请选择远程管理模式。
+
+## Cloudflare 远程管理
+
+在 Cloudflare 中准备可用的域名，并按照 [Create a tunnel](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/get-started/create-remote-tunnel/) 创建远程管理隧道，将应用发布路由指向 OpenFic 实际监听的本地 HTTP 地址和端口。
+
+回到 OpenFic，将模式设为`远程管理`，填写`公网域名`与`Cloudflare 隧道 Token`后启动。域名只填写主机名，例如`writing.example.com`，不要包含`https://`或路径。
+
+Token 会在服务端加密保存。已有保存的 Token 时，留空可以继续使用；不要将 Token 当作访问地址分享给他人。
+
+<Frame caption="远程管理模式配置示例；截图中尚未安装客户端或建立连接。">
+  ![Cloudflare 远程管理隧道配置中的客户端检测、域名与 Token 字段](/images/screenshot/tunnels-settings.png)
+</Frame>
+
+## ngrok
+
+ngrok 需要账号与 Authtoken。先按照 [ngrok Dashboard](https://dashboard.ngrok.com/get-started/your-authtoken) 的指引，在服务端的 ngrok 配置或环境变量中配置令牌，再在 OpenFic 中选择 ngrok 并启动。
+
+ngrok 不使用 Cloudflare 的域名和 Token 配置，能否获得固定地址及其他能力取决于你的 ngrok 账号。
+
+## 连接与停止
+
+状态变为`已连接`后，在其他设备中打开远程访问地址，并输入实例密码。底部状态栏也会显示当前隧道状态。
+
+不再需要远程访问时，点击`停止隧道`。如果提示超时或进程退出，请检查服务端网络、客户端是否可执行以及服务商凭据，然后重新连接。保存配置本身不会保证隧道始终在线，重启实例后请检查连接状态。

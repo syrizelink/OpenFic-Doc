@@ -1,0 +1,88 @@
+---
+title: "访问认证与数据备份"
+---
+
+OpenFic 的作品和配置由后端实例保存。无论通过浏览器还是桌面端访问同一个实例，使用的都是该实例的数据。
+
+## 配置应用密码
+
+默认情况下，OpenFic 不要求输入密码。允许其他设备访问前，可以设置`OPENFIC_AUTH_PASSWORD`启用应用密码认证。
+
+<Tabs>
+  <Tab title="Python">
+    在数据目录中创建或编辑`.env`文件，默认路径为`~/.openfic/.env`：
+
+    ```dotenv
+    OPENFIC_AUTH_PASSWORD=replace-with-your-own-password
+    ```
+
+    将示例值替换为自己的密码，然后重新启动`openfic serve`。如需让局域网内的其他设备访问，可以使用：
+
+    ```bash
+    openfic serve --host 0.0.0.0
+    ```
+
+    默认启动命令只监听本机的`127.0.0.1`。如果使用自定义数据目录，请在启动时保持相同的`OPENFIC_DATA_DIR`，并将`.env`放在该目录中。
+  </Tab>
+  <Tab title="Docker">
+    在运行 Docker 命令的目录中创建`.env.openfic`：
+
+    ```dotenv
+    OPENFIC_AUTH_PASSWORD=replace-with-your-own-password
+    ```
+
+    创建容器时加载该文件：
+
+    ```bash
+    docker run -d -p 8000:8000 \
+      -v "openfic:/data" \
+      --env-file .env.openfic \
+      --name openfic --restart unless-stopped \
+      ghcr.io/syrizelink/openfic:latest
+    ```
+
+    如果同名容器已存在，请先停止并删除旧容器，再按原有端口、数据卷和其他配置重新创建。使用 Compose 时，可以为`openfic`服务加入`env_file: [.env.openfic]`。
+  </Tab>
+</Tabs>
+
+重新打开页面后，输入配置的密码即可访问。服务端配置变更需要重启；系统环境变量会优先于数据目录中的`.env`生效。
+
+<Frame caption="启用认证后，打开实例地址会先显示密码页面。">
+  ![开启应用密码认证后，OpenFic 显示密码输入框和信任该设备选项](/images/screenshot/auth-login.png)
+</Frame>
+
+应用密码用于保护整个实例，并不提供多用户账号和项目权限隔离。远程访问时，应使用 HTTPS；0.13.0 的[远程隧道](/feature/tunnels)也强制要求启用密码认证。
+
+## 了解数据目录
+
+| 安装方式 | 默认数据位置 |
+| :-- | :-- |
+| Python CLI / uvx | `~/.openfic` |
+| Docker | 容器内的`/data`，由你挂载的数据卷或主机目录保存 |
+| 桌面应用 | 系统用户数据目录或首次设置时选择的目录，参阅[桌面应用](/installation/desktop) |
+
+在默认 SQLite 配置下，数据目录包括业务数据库`openfic.db`、Agent 检查点数据库`checkpoints.db`，以及密钥、封面、角色图片、附件等文件。
+
+<Warning>
+  `.key`用于解密已保存的提供商密钥等配置。只复制数据库而遗漏`.key`，可能导致原有 API Key 或授权凭据无法解密。请将整个数据目录一并备份。
+</Warning>
+
+## 备份与恢复
+
+<Steps>
+  <Step title="停止写入">
+    等待正在运行的 Agent 完成或手动停止，再完全关闭本地实例。Python 服务可以按`Ctrl+C`退出，Docker 可以执行`docker stop openfic`。
+  </Step>
+  <Step title="备份整个数据目录">
+    复制整个数据目录或导出 Docker 数据卷，并确认隐藏文件`.key`和`.env`也在其中。桌面端的本地实例可以通过数据管理页面完成备份。
+
+    如果使用 PostgreSQL，还需要分别备份业务数据库与检查点数据库；本地数据目录仍要保留，不能由数据库备份代替。
+  </Step>
+  <Step title="恢复并验证">
+    停止目标实例，将备份恢复到它实际使用的数据目录，再以匹配的数据库配置启动。检查项目、章节和提供商连接后，再继续创作。
+
+    还原会替换目标位置的数据，请先备份目标实例的现有内容。跨版本恢复时，优先使用生成备份时的版本或兼容的新版本，避免直接用旧版读取升级后的数据库。
+  </Step>
+</Steps>
+
+章节 TXT 导出和笔记导出适合在外部继续编辑，但不包含完整的会话、配置与检查点，不能替代实例备份。
