@@ -20,7 +20,8 @@
           "installation/docker",
           "installation/python",
           "installation/desktop",
-          "postgre-sql"
+          "postgre-sql",
+          "installation/configuration"
         ],
         "expanded": true
       },
@@ -37,7 +38,17 @@
         "group": "功能",
         "pages": [
           "feature/skill",
-          "feature/agent"
+          "feature/agent",
+          "feature/session",
+          "feature/writing",
+          "feature/worldbuilding",
+          "feature/rules-prompts",
+          "feature/index",
+          "feature/summary",
+          "feature/context",
+          "feature/web-search",
+          "feature/speech",
+          "feature/tunnels"
         ]
       }
     ]
