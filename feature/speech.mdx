@@ -39,6 +39,10 @@ title: "语音转写"
   </Step>
 </Steps>
 
+<Frame caption="首次使用本地识别前，先准备 SenseVoice 模型文件。">
+  ![语音转写设置中选择本地 SenseVoice，并显示准备模型和自定义路径入口](/images/screenshot/speech-settings.png)
+</Frame>
+
 ## 配置云端服务
 
 选择服务商后，填写 API Key，并按需调整 API 基础地址、模型和识别语言。基础地址与模型留空时使用该服务商的默认值；兼容服务请填写它实际提供的音频接口基础地址。
@@ -46,6 +50,10 @@ title: "语音转写"
 Azure 使用完整语言代码，例如`zh-CN`或`en-US`，也可以使用`auto`。其他服务的语言与模型支持范围，请以提供商说明为准。
 
 语音服务的密钥不会自动复用`提供商`页面中的聊天模型密钥，需要在这里单独填写。已保存的密钥会在后端加密保存；不修改时保留原值，删除密钥操作在保存后生效。
+
+<Frame caption="云端语音服务使用独立配置，不会自动复用聊天模型密钥。">
+  ![语音转写设置中的 OpenAI 兼容服务基础地址、模型、语言和 API Key](/images/screenshot/speech-cloud-settings.png)
+</Frame>
 
 ## 在会话中使用
 

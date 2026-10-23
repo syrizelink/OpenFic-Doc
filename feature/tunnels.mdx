@@ -46,6 +46,10 @@ title: "远程隧道"
 
 Token 会在服务端加密保存。已有保存的 Token 时，留空可以继续使用；不要将 Token 当作访问地址分享给他人。
 
+<Frame caption="远程管理模式配置示例；截图中尚未安装客户端或建立连接。">
+  ![Cloudflare 远程管理隧道配置中的客户端检测、域名与 Token 字段](/images/screenshot/tunnels-settings.png)
+</Frame>
+
 ## ngrok
 
 ngrok 需要账号与 Authtoken。先按照 [ngrok Dashboard](https://dashboard.ngrok.com/get-started/your-authtoken) 的指引，在服务端的 ngrok 配置或环境变量中配置令牌，再在 OpenFic 中选择 ngrok 并启动。

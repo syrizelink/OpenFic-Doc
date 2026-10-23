@@ -27,6 +27,10 @@ title: "智能体"
 
 选择一个 Agent 后，在右侧配置名称、描述、模型、能力和技能，再点击底部的`保存`。如果希望从已有配置开始，可以从菜单中选择`复制`，再修改复制出来的 Agent。
 
+<Frame caption="为不同 Agent 分别配置模型、能力与技能。">
+  ![智能体设置中选中 Build，右侧显示模型、能力与技能配置](/images/screenshot/agents-settings.png)
+</Frame>
+
 模型可以跟随系统设置，也可以单独指定。内置的主 Agent 包括 Build 和 Plan；子 Agent 包括 Explore、Composer、Auditor、Writer、Actor 和 Reviewer，分别承担信息探索、方案组织、计划审查、正文创作、任务执行和质量审核。
 
 内置 Agent 的配置可以按需修改，也可以通过`重置`恢复。提示词的修改入口位于 Agent 详情中的提示词模板链接，详细说明参阅[规则与提示词](/feature/rules-prompts)。
@@ -72,6 +76,10 @@ title: "智能体"
 | 允许 | 允许 Agent 直接执行该工具 |
 | 询问 | 暂停执行并等待你审批 |
 | 拒绝 | 阻止该工具执行 |
+
+<Frame caption="全局工具权限决定工具执行时是否需要审批。">
+  ![工具权限设置中按工具选择允许、询问或拒绝](/images/screenshot/tool-permissions.png)
+</Frame>
 
 如果 Agent 无法修改章节，请同时检查它是否装载了对应能力，以及该工具是否被设为拒绝。联网搜索还需要单独配置搜索服务，参阅[联网搜索](/feature/web-search)。
 
