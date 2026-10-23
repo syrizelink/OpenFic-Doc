@@ -99,13 +99,13 @@ sidebarTitle: "使用 Python"
     Linux/macOS：
 
     ```shellscript
-    source venv/bin/activate
+    source .venv/bin/activate
     ```
 
     Windows：
 
     ```shellscript
-    venv\Scripts\activate
+    .venv\Scripts\activate
     ```
   </Step>
   <Step title="安装 OpenFic">
@@ -158,7 +158,13 @@ openfic serve
 OPENFIC_DATA_DIR="$HOME/OpenFic/data" uvx --python 3.12 openfic@latest serve
 ```
 
+### 允许其他设备访问
+
+如果希望同一局域网内的其他设备访问，可以使用`openfic serve --host 0.0.0.0`。默认的`openfic serve`仅监听`127.0.0.1`。开放访问前，请先配置[应用密码](/installation/configuration)，也可以在 0.13.0 的[远程隧道](/feature/tunnels)中创建访问地址。
+
 ## 更新
+
+更新前请先停止 OpenFic 并备份数据目录；更新完成后，重新执行原有的启动命令。
 
 ### pip、Conda 和 Venv
 
@@ -201,3 +207,4 @@ uvx 不会将 OpenFic 安装到当前 Python 环境，因此不需要单独卸�
 <Warning>
   卸载软件包或删除虚拟环境不会删除 `~/.openfic` 中的项目和配置。如果确认不再需要这些数据，请手动删除数据目录。
 </Warning>
+
